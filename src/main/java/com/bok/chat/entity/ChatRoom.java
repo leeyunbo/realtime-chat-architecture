@@ -20,9 +20,13 @@ public class ChatRoom extends BaseEntity {
     @Column(nullable = false)
     private ChatRoomType type;
 
-    @Builder
-    public ChatRoom(ChatRoomType type) {
+    private ChatRoom(ChatRoomType type) {
         this.type = type;
+    }
+
+    public static ChatRoom create(int memberCount) {
+        ChatRoomType type = memberCount == 2 ? ChatRoomType.DIRECT : ChatRoomType.GROUP;
+        return new ChatRoom(type);
     }
 
     public enum ChatRoomType {
