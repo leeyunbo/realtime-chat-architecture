@@ -29,6 +29,8 @@ public class ChatRoomUser extends BaseEntity {
     @Column(nullable = false)
     private Status status;
 
+    private Long lastReadMessageId;
+
     @Builder
     public ChatRoomUser(ChatRoom chatRoom, User user) {
         this.chatRoom = chatRoom;
@@ -38,6 +40,12 @@ public class ChatRoomUser extends BaseEntity {
 
     public void leave() {
         this.status = Status.LEFT;
+    }
+
+    public void updateLastReadMessageId(Long messageId) {
+        if (this.lastReadMessageId == null || messageId > this.lastReadMessageId) {
+            this.lastReadMessageId = messageId;
+        }
     }
 
     public enum Status {

@@ -2,7 +2,6 @@ package com.bok.chat.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -30,17 +29,14 @@ public class Message extends BaseEntity {
     @Column(nullable = false)
     private int unreadCount;
 
-    @Builder
-    public Message(ChatRoom chatRoom, User sender, String content, int unreadCount) {
+    private Message(ChatRoom chatRoom, User sender, String content, int unreadCount) {
         this.chatRoom = chatRoom;
         this.sender = sender;
         this.content = content;
         this.unreadCount = unreadCount;
     }
 
-    public void decreaseUnreadCount() {
-        if (this.unreadCount > 0) {
-            this.unreadCount--;
-        }
+    public static Message create(ChatRoom chatRoom, User sender, String content, int memberCount) {
+        return new Message(chatRoom, sender, content, memberCount - 1);
     }
 }
