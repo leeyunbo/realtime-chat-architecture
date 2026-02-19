@@ -7,6 +7,7 @@ import com.bok.chat.entity.ChatRoomUser;
 import com.bok.chat.entity.User;
 import com.bok.chat.repository.ChatRoomRepository;
 import com.bok.chat.repository.ChatRoomUserRepository;
+import com.bok.chat.repository.FriendshipRepository;
 import com.bok.chat.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,10 +24,18 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomUserRepository chatRoomUserRepository;
     private final UserRepository userRepository;
+    private final FriendshipRepository friendshipRepository;
 
     @Transactional
     public ChatRoomResponse create(Long currentUserId, CreateChatRoomRequest request) {
         List<Long> allUserIds = new ArrayList<>(request.userIds().stream().distinct().toList());
+
+        for (Long targetUserId : allUserIds) {
+            if (!friendshipRepository.existsFriendship(currentUserId, targetUserId)) {
+                throw new IllegalArgumentException("친구가 아닌 사용자가 포함되어 있습니다: " + targetUserId);
+            }
+        }
+
         allUserIds.add(currentUserId);
 
         ChatRoom chatRoom = chatRoomRepository.save(ChatRoom.create(allUserIds.size()));

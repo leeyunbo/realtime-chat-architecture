@@ -7,7 +7,9 @@ public enum MessageType {
     MESSAGE_SEND("message.send"),
     MESSAGE_READ("message.read"),
     MESSAGE_RECEIVED("message.received"),
-    MESSAGE_UPDATED("message.updated");
+    MESSAGE_UPDATED("message.updated"),
+    HEARTBEAT("heartbeat"),
+    USER_STATUS("user.status");
 
     private final String value;
 
