@@ -33,7 +33,7 @@ public class OnlineStatusService {
     }
 
     public boolean isOnline(Long userId) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(ONLINE_KEY_PREFIX + userId));
+        return redisTemplate.hasKey(ONLINE_KEY_PREFIX + userId);
     }
 
     public String getServerId(Long userId) {

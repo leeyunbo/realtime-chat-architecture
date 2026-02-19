@@ -6,6 +6,7 @@ import com.bok.chat.api.service.ChatMessageService.SendResult;
 import com.bok.chat.api.service.FriendService;
 import com.bok.chat.config.ServerIdHolder;
 import com.bok.chat.entity.ChatRoomUser;
+import com.bok.chat.entity.User;
 import com.bok.chat.redis.OnlineStatusService;
 import com.bok.chat.redis.RedisMessageRelay;
 import com.bok.chat.repository.UserRepository;
@@ -100,7 +101,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private void notifyFriendsStatus(Long userId, boolean online) {
         String username = userRepository.findById(userId)
-                .map(u -> u.getUsername())
+                .map(User::getUsername)
                 .orElse("unknown");
 
         WebSocketMessage statusMessage = WebSocketMessage.userStatus(userId, username, online);
