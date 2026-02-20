@@ -8,6 +8,7 @@ import com.bok.chat.entity.User;
 import com.bok.chat.repository.ChatRoomRepository;
 import com.bok.chat.repository.ChatRoomUserRepository;
 import com.bok.chat.repository.FriendshipRepository;
+import com.bok.chat.repository.MessageRepository;
 import com.bok.chat.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class ChatRoomService {
     private final ChatRoomUserRepository chatRoomUserRepository;
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
+    private final MessageRepository messageRepository;
 
     @Transactional
     public ChatRoomResponse create(Long currentUserId, CreateChatRoomRequest request) {
@@ -51,7 +53,7 @@ public class ChatRoomService {
             memberNames.add(user.getUsername());
         }
 
-        return new ChatRoomResponse(chatRoom.getId(), chatRoom.getType(), memberNames, chatRoom.getCreatedAt());
+        return new ChatRoomResponse(chatRoom.getId(), chatRoom.getType(), memberNames, 0, chatRoom.getCreatedAt());
     }
 
     public List<ChatRoomResponse> getMyChatRooms(Long userId) {
@@ -65,7 +67,10 @@ public class ChatRoomService {
                     .map(m -> m.getUser().getUsername())
                     .toList();
 
-            return new ChatRoomResponse(room.getId(), room.getType(), memberNames, room.getCreatedAt());
+            Long lastReadId = cru.getLastReadMessageId() != null ? cru.getLastReadMessageId() : 0L;
+            long unreadCount = messageRepository.countUnreadMessages(room.getId(), lastReadId);
+
+            return new ChatRoomResponse(room.getId(), room.getType(), memberNames, unreadCount, room.getCreatedAt());
         }).toList();
     }
 }

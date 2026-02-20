@@ -47,4 +47,13 @@ public class WebSocketMessage {
         return new WebSocketMessage(MessageType.USER_STATUS, null,
                 userId, username, null, null, null, online);
     }
+
+    /**
+     * 채팅방 일괄 읽음 알림.
+     * 클라이언트는 해당 방의 메시지 중 id <= lastReadMessageId인 것의 unreadCount를 1 차감.
+     */
+    public static WebSocketMessage messagesRead(Long chatRoomId, Long readByUserId, Long lastReadMessageId) {
+        return new WebSocketMessage(MessageType.MESSAGES_READ, chatRoomId,
+                readByUserId, null, null, lastReadMessageId, null, null);
+    }
 }

@@ -9,5 +9,6 @@ public record ChatRoomResponse(
         Long id,
         ChatRoom.ChatRoomType type,
         List<String> members,
+        long unreadCount,
         LocalDateTime createdAt
 ) {}

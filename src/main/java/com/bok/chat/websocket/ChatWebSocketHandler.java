@@ -1,7 +1,7 @@
 package com.bok.chat.websocket;
 
 import com.bok.chat.api.service.ChatMessageService;
-import com.bok.chat.api.service.ChatMessageService.ReadResult;
+import com.bok.chat.api.service.ChatMessageService.BulkReadResult;
 import com.bok.chat.api.service.ChatMessageService.SendResult;
 import com.bok.chat.api.service.FriendService;
 import com.bok.chat.config.ServerIdHolder;
@@ -87,12 +87,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void handleReadMessage(Long userId, WebSocketMessage message) {
-        ReadResult result = chatMessageService.readMessage(userId, message.getMessageId());
+        BulkReadResult result = chatMessageService.readMessages(userId, message.getChatRoomId());
+        if (result == null) {
+            return;
+        }
 
-        WebSocketMessage outgoing = WebSocketMessage.messageUpdated(
-                result.message().getId(),
-                result.message().getChatRoom().getId(),
-                result.message().getUnreadCount());
+        WebSocketMessage outgoing = WebSocketMessage.messagesRead(
+                result.chatRoomId(), result.readByUserId(), result.lastReadMessageId());
 
         for (ChatRoomUser member : result.members()) {
             sendToUser(member.getUser().getId(), outgoing);

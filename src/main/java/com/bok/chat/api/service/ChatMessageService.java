@@ -23,7 +23,8 @@ public class ChatMessageService {
     private final UserRepository userRepository;
 
     public record SendResult(Message message, User sender, List<ChatRoomUser> members) {}
-    public record ReadResult(Message message, List<ChatRoomUser> members) {}
+    public record BulkReadResult(Long chatRoomId, Long readByUserId, Long lastReadMessageId,
+                                 List<ChatRoomUser> members) {}
 
     @Transactional
     public SendResult sendMessage(Long senderId, Long chatRoomId, String content) {
@@ -42,21 +43,33 @@ public class ChatMessageService {
         return new SendResult(saved, sender, members);
     }
 
+    /**
+     * 채팅방 진입 시 일괄 읽음 처리.
+     * lastReadMessageId 이후의 모든 메시지 unreadCount를 1 차감하고,
+     * lastReadMessageId를 최신 메시지 ID로 갱신한다.
+     *
+     * @return 읽을 메시지가 없으면 null
+     */
     @Transactional
-    public ReadResult readMessage(Long userId, Long messageId) {
-        messageRepository.decrementUnreadCount(messageId);
-
-        Message msg = messageRepository.findById(messageId)
-                .orElseThrow(() -> new IllegalArgumentException("메시지가 존재하지 않습니다."));
-
+    public BulkReadResult readMessages(Long userId, Long chatRoomId) {
         ChatRoomUser chatRoomUser = chatRoomUserRepository
-                .findByChatRoomIdAndUserId(msg.getChatRoom().getId(), userId)
+                .findByChatRoomIdAndUserId(chatRoomId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방 멤버가 아닙니다."));
-        chatRoomUser.updateLastReadMessageId(msg.getId());
+
+        Long prevLastRead = chatRoomUser.getLastReadMessageId() != null
+                ? chatRoomUser.getLastReadMessageId() : 0L;
+
+        Long latestMessageId = messageRepository.findMaxIdByChatRoomId(chatRoomId).orElse(null);
+        if (latestMessageId == null || latestMessageId <= prevLastRead) {
+            return null;
+        }
+
+        messageRepository.bulkDecrementUnreadCount(chatRoomId, prevLastRead);
+        chatRoomUser.updateLastReadMessageId(latestMessageId);
 
         List<ChatRoomUser> members = chatRoomUserRepository
-                .findByChatRoomIdAndStatus(msg.getChatRoom().getId(), ChatRoomUser.Status.ACTIVE);
+                .findByChatRoomIdAndStatus(chatRoomId, ChatRoomUser.Status.ACTIVE);
 
-        return new ReadResult(msg, members);
+        return new BulkReadResult(chatRoomId, userId, latestMessageId, members);
     }
 }

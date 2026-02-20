@@ -9,7 +9,8 @@ public enum MessageType {
     MESSAGE_RECEIVED("message.received"),
     MESSAGE_UPDATED("message.updated"),
     HEARTBEAT("heartbeat"),
-    USER_STATUS("user.status");
+    USER_STATUS("user.status"),
+    MESSAGES_READ("messages.read");
 
     private final String value;
 
