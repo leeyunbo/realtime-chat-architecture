@@ -67,10 +67,15 @@ public class ChatRoomService {
                     .map(m -> m.getUser().getUsername())
                     .toList();
 
-            Long lastReadId = cru.getLastReadMessageId() != null ? cru.getLastReadMessageId() : 0L;
-            long unreadCount = messageRepository.countUnreadMessages(room.getId(), lastReadId);
-
-            return new ChatRoomResponse(room.getId(), room.getType(), memberNames, unreadCount, room.getCreatedAt());
+            return new ChatRoomResponse(room.getId(), room.getType(), memberNames,
+                    getUnreadCount(cru), room.getCreatedAt());
         }).toList();
+    }
+
+    private long getUnreadCount(ChatRoomUser chatRoomUser) {
+        Long lastReadId = chatRoomUser.getLastReadMessageId() != null
+                ? chatRoomUser.getLastReadMessageId() : 0L;
+        return messageRepository.countUnreadMessages(
+                chatRoomUser.getChatRoom().getId(), lastReadId);
     }
 }

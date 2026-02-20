@@ -88,7 +88,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private void handleReadMessage(Long userId, WebSocketMessage message) {
         BulkReadResult result = chatMessageService.readMessages(userId, message.getChatRoomId());
-        if (result == null) {
+        if (!result.success()) {
             return;
         }
 
@@ -96,7 +96,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 result.chatRoomId(), result.readByUserId(), result.lastReadMessageId());
 
         for (ChatRoomUser member : result.members()) {
-            sendToUser(member.getUser().getId(), outgoing);
+            Long memberId = member.getUser().getId();
+            if (!memberId.equals(userId)) {
+                sendToUser(memberId, outgoing);
+            }
         }
     }
 

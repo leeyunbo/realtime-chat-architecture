@@ -17,11 +17,11 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Modifying
     @Query("UPDATE Message m SET m.unreadCount = m.unreadCount - 1 " +
             "WHERE m.chatRoom.id = :chatRoomId AND m.id > :lastReadMessageId AND m.unreadCount > 0")
-    int bulkDecrementUnreadCount(@Param("chatRoomId") Long chatRoomId,
-                                 @Param("lastReadMessageId") Long lastReadMessageId);
+    int decrementUnreadCountAfter(@Param("chatRoomId") Long chatRoomId,
+                                  @Param("lastReadMessageId") Long lastReadMessageId);
 
     @Query("SELECT MAX(m.id) FROM Message m WHERE m.chatRoom.id = :chatRoomId")
-    Optional<Long> findMaxIdByChatRoomId(@Param("chatRoomId") Long chatRoomId);
+    Optional<Long> findLatestMessageIdByChatRoomId(@Param("chatRoomId") Long chatRoomId);
 
     @Query("SELECT COUNT(m) FROM Message m WHERE m.chatRoom.id = :chatRoomId AND m.id > :lastReadMessageId")
     long countUnreadMessages(@Param("chatRoomId") Long chatRoomId,
