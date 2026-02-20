@@ -1,10 +1,9 @@
 package com.bok.chat;
 
+import com.bok.chat.integration.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class RealtimeChatApplicationTests {
+class RealtimeChatApplicationTests extends IntegrationTestBase {
 
 	@Test
 	void contextLoads() {
