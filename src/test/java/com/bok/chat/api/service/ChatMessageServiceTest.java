@@ -46,6 +46,71 @@ class ChatMessageServiceTest {
     private UserRepository userRepository;
 
     @Nested
+    @DisplayName("밀린 메시지 조회")
+    class GetUndeliveredMessages {
+
+        @Test
+        @DisplayName("안 읽은 메시지가 있는 채팅방의 메시지를 반환한다")
+        void getUndeliveredMessages_shouldReturnUnreadMessages() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User user = createUser(1L, "user1");
+            User sender = createUser(2L, "sender");
+            ChatRoomUser chatRoomUser = createChatRoomUser(1L, chatRoom, user);
+            Message msg = createMessage(10L, chatRoom, sender, "hello", 2);
+
+            given(chatRoomUserRepository.findByUserIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(chatRoomUser));
+            given(messageRepository.findUnreadMessages(1L, 0L))
+                    .willReturn(List.of(msg));
+
+            var result = chatMessageService.getUndeliveredMessages(1L);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).chatRoomId()).isEqualTo(1L);
+            assertThat(result.get(0).messages()).containsExactly(msg);
+        }
+
+        @Test
+        @DisplayName("안 읽은 메시지가 없는 채팅방은 필터링된다")
+        void getUndeliveredMessages_emptyRoom_shouldBeFiltered() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User user = createUser(1L, "user1");
+            ChatRoomUser chatRoomUser = createChatRoomUser(1L, chatRoom, user);
+
+            given(chatRoomUserRepository.findByUserIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(chatRoomUser));
+            given(messageRepository.findUnreadMessages(1L, 0L))
+                    .willReturn(List.of());
+
+            var result = chatMessageService.getUndeliveredMessages(1L);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("lastReadMessageId가 있으면 해당 ID 이후의 메시지만 조회한다")
+        void getUndeliveredMessages_withLastRead_shouldUseLastReadId() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User user = createUser(1L, "user1");
+            User sender = createUser(2L, "sender");
+            ChatRoomUser chatRoomUser = createChatRoomUser(1L, chatRoom, user);
+            chatRoomUser.updateLastReadMessageId(5L);
+            Message msg = createMessage(10L, chatRoom, sender, "new msg", 2);
+
+            given(chatRoomUserRepository.findByUserIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(chatRoomUser));
+            given(messageRepository.findUnreadMessages(1L, 5L))
+                    .willReturn(List.of(msg));
+
+            var result = chatMessageService.getUndeliveredMessages(1L);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).messages()).containsExactly(msg);
+            verify(messageRepository).findUnreadMessages(1L, 5L);
+        }
+    }
+
+    @Nested
     @DisplayName("메시지 전송")
     class SendMessage {
 

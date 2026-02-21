@@ -25,12 +25,27 @@ public class ChatMessageService {
     private final UserRepository userRepository;
 
     public record SendResult(Message message, User sender, List<ChatRoomUser> members) {}
+    public record UndeliveredMessages(Long chatRoomId, List<Message> messages) {}
     public record BulkReadResult(boolean success, Long chatRoomId, Long readByUserId,
                                  Long lastReadMessageId, List<ChatRoomUser> members) {
 
         public static BulkReadResult nothingToRead() {
             return new BulkReadResult(false, null, null, null, List.of());
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<UndeliveredMessages> getUndeliveredMessages(Long userId) {
+        List<ChatRoomUser> rooms = chatRoomUserRepository.findByUserIdAndStatus(userId, ChatRoomUser.Status.ACTIVE);
+        return rooms.stream()
+                .map(room -> {
+                    Long lastRead = room.getLastReadMessageId() != null ? room.getLastReadMessageId() : 0L;
+                    List<Message> messages = messageRepository.findUnreadMessages(
+                            room.getChatRoom().getId(), lastRead);
+                    return new UndeliveredMessages(room.getChatRoom().getId(), messages);
+                })
+                .filter(um -> !um.messages().isEmpty())
+                .toList();
     }
 
     @Transactional

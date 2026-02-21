@@ -3,6 +3,8 @@ package com.bok.chat.websocket;
 import com.bok.chat.api.service.ChatMessageService;
 import com.bok.chat.api.service.ChatMessageService.BulkReadResult;
 import com.bok.chat.api.service.ChatMessageService.SendResult;
+import com.bok.chat.api.service.ChatMessageService.UndeliveredMessages;
+import com.bok.chat.entity.Message;
 import com.bok.chat.api.service.FriendService;
 import com.bok.chat.config.ServerIdHolder;
 import com.bok.chat.entity.ChatRoomUser;
@@ -43,6 +45,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         onlineStatusService.setOnline(userId);
         log.info("WebSocket connected: userId={}", userId);
 
+        sendPendingMessages(session, userId);
         notifyFriendsStatus(userId, true);
     }
 
@@ -99,6 +102,24 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             Long memberId = member.getUser().getId();
             if (!memberId.equals(userId)) {
                 sendToUser(memberId, outgoing);
+            }
+        }
+    }
+
+    private void sendPendingMessages(WebSocketSession session, Long userId) {
+        List<UndeliveredMessages> pending = chatMessageService.getUndeliveredMessages(userId);
+        for (UndeliveredMessages group : pending) {
+            for (Message msg : group.messages()) {
+                WebSocketMessage outgoing = WebSocketMessage.messageReceived(
+                        group.chatRoomId(), msg.getSender().getId(),
+                        msg.getSender().getUsername(), msg.getContent(),
+                        msg.getId(), msg.getUnreadCount());
+                try {
+                    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(outgoing)));
+                } catch (IOException e) {
+                    log.error("Failed to send pending message to userId={}", userId, e);
+                    return;
+                }
             }
         }
     }

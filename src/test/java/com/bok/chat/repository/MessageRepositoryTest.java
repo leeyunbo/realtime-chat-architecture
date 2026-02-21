@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import jakarta.persistence.EntityManager;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("MessageRepository")
@@ -94,6 +96,55 @@ class MessageRepositoryTest extends RepositoryTestBase {
         var result = messageRepository.findLatestMessageIdByChatRoomId(chatRoom.getId());
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("lastReadMessageId 이후의 안 읽은 메시지를 시간순으로 반환한다")
+    void findUnreadMessages_shouldReturnMessagesAfterLastRead() {
+        Message msg1 = Message.create(chatRoom, sender, "msg1", 2);
+        Message msg2 = Message.create(chatRoom, sender, "msg2", 2);
+        Message msg3 = Message.create(chatRoom, sender, "msg3", 2);
+        em.persist(msg1);
+        em.persist(msg2);
+        em.persist(msg3);
+        em.flush();
+        em.clear();
+
+        List<Message> unread = messageRepository.findUnreadMessages(chatRoom.getId(), msg1.getId());
+
+        assertThat(unread).hasSize(2);
+        assertThat(unread.get(0).getContent()).isEqualTo("msg2");
+        assertThat(unread.get(1).getContent()).isEqualTo("msg3");
+        // JOIN FETCH로 sender가 로딩되어야 한다
+        assertThat(unread.get(0).getSender().getUsername()).isEqualTo("sender");
+    }
+
+    @Test
+    @DisplayName("lastReadMessageId가 0이면 모든 메시지를 반환한다")
+    void findUnreadMessages_withZeroLastRead_shouldReturnAllMessages() {
+        Message msg1 = Message.create(chatRoom, sender, "msg1", 2);
+        Message msg2 = Message.create(chatRoom, sender, "msg2", 2);
+        em.persist(msg1);
+        em.persist(msg2);
+        em.flush();
+        em.clear();
+
+        List<Message> unread = messageRepository.findUnreadMessages(chatRoom.getId(), 0L);
+
+        assertThat(unread).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("안 읽은 메시지가 없으면 빈 리스트를 반환한다")
+    void findUnreadMessages_noUnread_shouldReturnEmpty() {
+        Message msg1 = Message.create(chatRoom, sender, "msg1", 2);
+        em.persist(msg1);
+        em.flush();
+        em.clear();
+
+        List<Message> unread = messageRepository.findUnreadMessages(chatRoom.getId(), msg1.getId());
+
+        assertThat(unread).isEmpty();
     }
 
     @Test

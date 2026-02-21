@@ -3,6 +3,7 @@ package com.bok.chat.websocket;
 import com.bok.chat.api.service.ChatMessageService;
 import com.bok.chat.api.service.ChatMessageService.BulkReadResult;
 import com.bok.chat.api.service.ChatMessageService.SendResult;
+import com.bok.chat.api.service.ChatMessageService.UndeliveredMessages;
 import com.bok.chat.api.service.FriendService;
 import com.bok.chat.config.ServerIdHolder;
 import com.bok.chat.entity.ChatRoomUser;
@@ -79,8 +80,9 @@ class ChatWebSocketHandlerTest {
     class Connection {
 
         @Test
-        @DisplayName("연결 시 세션 등록, 온라인 설정, 친구에게 상태 알림을 보낸다")
+        @DisplayName("연결 시 세션 등록, 온라인 설정, 밀린 메시지 전달, 친구에게 상태 알림을 보낸다")
         void afterConnectionEstablished() {
+            given(chatMessageService.getUndeliveredMessages(1L)).willReturn(List.of());
             given(userRepository.findById(1L)).willReturn(Optional.of(createUser(1L, "alice")));
             given(friendService.getFriendIds(1L)).willReturn(List.of(2L));
 
@@ -88,7 +90,46 @@ class ChatWebSocketHandlerTest {
 
             verify(sessionManager).register(1L, session);
             verify(onlineStatusService).setOnline(1L);
+            verify(chatMessageService).getUndeliveredMessages(1L);
             verify(friendService).getFriendIds(1L);
+        }
+
+        @Test
+        @DisplayName("연결 시 밀린 메시지를 전달한다")
+        void afterConnectionEstablished_sendsPendingMessages() throws Exception {
+            var chatRoom = createChatRoom(1L, 2);
+            var sender = createUser(2L, "bob");
+            var msg1 = createMessage(10L, chatRoom, sender, "hello", 2);
+            var msg2 = createMessage(11L, chatRoom, sender, "world", 2);
+
+            given(chatMessageService.getUndeliveredMessages(1L))
+                    .willReturn(List.of(new UndeliveredMessages(1L, List.of(msg1, msg2))));
+            given(userRepository.findById(1L)).willReturn(Optional.of(createUser(1L, "alice")));
+            given(friendService.getFriendIds(1L)).willReturn(List.of());
+
+            handler.afterConnectionEstablished(session);
+
+            verify(session, times(2)).sendMessage(any(TextMessage.class));
+        }
+
+        @Test
+        @DisplayName("밀린 메시지 전송 중 IOException 발생 시 나머지 전송을 중단한다")
+        void afterConnectionEstablished_ioException_stopsDelivery() throws Exception {
+            var chatRoom = createChatRoom(1L, 2);
+            var sender = createUser(2L, "bob");
+            var msg1 = createMessage(10L, chatRoom, sender, "hello", 2);
+            var msg2 = createMessage(11L, chatRoom, sender, "world", 2);
+
+            given(chatMessageService.getUndeliveredMessages(1L))
+                    .willReturn(List.of(new UndeliveredMessages(1L, List.of(msg1, msg2))));
+            doThrow(new IOException("broken pipe")).when(session).sendMessage(any(TextMessage.class));
+            given(userRepository.findById(1L)).willReturn(Optional.of(createUser(1L, "alice")));
+            given(friendService.getFriendIds(1L)).willReturn(List.of());
+
+            handler.afterConnectionEstablished(session);
+
+            // IOException 발생 시 첫 메시지만 시도하고 중단
+            verify(session, times(1)).sendMessage(any(TextMessage.class));
         }
 
         @Test
