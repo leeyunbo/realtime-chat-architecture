@@ -39,7 +39,7 @@ public class ChatMessageService {
         List<ChatRoomUser> rooms = chatRoomUserRepository.findByUserIdAndStatus(userId, ChatRoomUser.Status.ACTIVE);
         return rooms.stream()
                 .map(room -> {
-                    Long lastRead = room.getLastReadMessageId() != null ? room.getLastReadMessageId() : 0L;
+                    long lastRead = room.getLastReadMessageIdOrDefault();
                     List<Message> messages = messageRepository.findUnreadMessages(
                             room.getChatRoom().getId(), lastRead);
                     return new UndeliveredMessages(room.getChatRoom().getId(), messages);
@@ -76,8 +76,7 @@ public class ChatMessageService {
                 .findByChatRoomIdAndUserId(chatRoomId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방 멤버가 아닙니다."));
 
-        Long prevLastRead = chatRoomUser.getLastReadMessageId() != null
-                ? chatRoomUser.getLastReadMessageId() : 0L;
+        long prevLastRead = chatRoomUser.getLastReadMessageIdOrDefault();
 
         Long latestMessageId = messageRepository.findLatestMessageIdByChatRoomId(chatRoomId)
                 .orElse(null);

@@ -73,8 +73,7 @@ public class ChatRoomService {
     }
 
     private long getUnreadCount(ChatRoomUser chatRoomUser) {
-        Long lastReadId = chatRoomUser.getLastReadMessageId() != null
-                ? chatRoomUser.getLastReadMessageId() : 0L;
+        long lastReadId = chatRoomUser.getLastReadMessageIdOrDefault();
         return messageRepository.countUnreadMessages(
                 chatRoomUser.getChatRoom().getId(), lastReadId);
     }

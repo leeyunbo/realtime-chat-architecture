@@ -29,6 +29,8 @@ public class ChatRoomUser extends BaseEntity {
     @Column(nullable = false)
     private Status status;
 
+    private static final long NO_MESSAGES_READ = 0L;
+
     private Long lastReadMessageId;
 
     @Builder
@@ -40,6 +42,10 @@ public class ChatRoomUser extends BaseEntity {
 
     public void leave() {
         this.status = Status.LEFT;
+    }
+
+    public long getLastReadMessageIdOrDefault() {
+        return lastReadMessageId != null ? lastReadMessageId : NO_MESSAGES_READ;
     }
 
     public void updateLastReadMessageId(Long messageId) {

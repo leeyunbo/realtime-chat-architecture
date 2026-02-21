@@ -123,5 +123,21 @@
         "createdAt": "2026-02-20T15:08:42.462Z"
       }
     ]
+  },
+  {
+    "id": 1771641030333,
+    "file": "src/main/java/com/bok/chat/api/service/ChatMessageService.java",
+    "line": 42,
+    "content": "근데 생각해보니까 room이 최초로 생기면 LastReadMessageId가 0L 아니야? null인가",
+    "context": "                    Long lastRead = room.getLastReadMessageId() != null ? room.getLastReadMessageId() : 0L;",
+    "commitHash": "e44d71c641c563a54a5dc5823e7921daf7372abb",
+    "createdAt": "2026-02-21T02:30:30.333Z",
+    "replies": [
+      {
+        "author": "claude",
+        "content": "`null`이야. `ChatRoomUser` 생성자를 보면:\n\n```java\n@Builder\npublic ChatRoomUser(ChatRoom chatRoom, User user) {\n    this.chatRoom = chatRoom;\n    this.user = user;\n    this.status = Status.ACTIVE;\n    // lastReadMessageId는 초기화 안 함 → null\n}\n```\n\n`Long` 래퍼 타입이라 기본값이 `null`이고, 생성자에서도 별도로 세팅하지 않아. 그래서 이 코드에서 `!= null` 체크 후 `0L`로 폴백하는 거야. `0L`은 \"아직 아무 메시지도 안 읽었으니 전부 다 가져와\"라는 의미로 쓰이는 거고.\n\n참고로 `readMessages()`에서도 동일한 패턴을 쓰고 있어 (ChatMessageService 64번 줄).",
+        "createdAt": "2026-02-21T02:35:00.000Z"
+      }
+    ]
   }
 ]
