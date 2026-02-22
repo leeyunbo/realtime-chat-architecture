@@ -1,5 +1,9 @@
 package com.bok.chat.api.service;
 
+import com.bok.chat.api.dto.BulkReadResult;
+import com.bok.chat.api.dto.DeleteResult;
+import com.bok.chat.api.dto.EditResult;
+import com.bok.chat.api.dto.SendResult;
 import com.bok.chat.entity.ChatRoom;
 import com.bok.chat.entity.ChatRoomUser;
 import com.bok.chat.entity.Message;
@@ -129,7 +133,7 @@ class ChatMessageServiceTest {
                     .willReturn(List.of(member1, member2));
             given(messageRepository.save(any(Message.class))).willReturn(savedMessage);
 
-            ChatMessageService.SendResult result = chatMessageService.sendMessage(1L, 1L, "hello");
+            SendResult result = chatMessageService.sendMessage(1L, 1L, "hello");
 
             assertThat(result.message().getId()).isEqualTo(1L);
             assertThat(result.sender().getUsername()).isEqualTo("sender");
@@ -178,7 +182,7 @@ class ChatMessageServiceTest {
             given(chatRoomUserRepository.findByChatRoomIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
                     .willReturn(List.of(chatRoomUser));
 
-            ChatMessageService.BulkReadResult result = chatMessageService.readMessages(1L, 1L);
+            BulkReadResult result = chatMessageService.readMessages(1L, 1L);
 
             assertThat(result.success()).isTrue();
             assertThat(result.lastReadMessageId()).isEqualTo(10L);
@@ -208,7 +212,7 @@ class ChatMessageServiceTest {
             given(messageRepository.findLatestMessageIdByChatRoomId(1L))
                     .willReturn(Optional.empty());
 
-            ChatMessageService.BulkReadResult result = chatMessageService.readMessages(1L, 1L);
+            BulkReadResult result = chatMessageService.readMessages(1L, 1L);
 
             assertThat(result.success()).isFalse();
         }
@@ -226,9 +230,94 @@ class ChatMessageServiceTest {
             given(messageRepository.findLatestMessageIdByChatRoomId(1L))
                     .willReturn(Optional.of(50L));
 
-            ChatMessageService.BulkReadResult result = chatMessageService.readMessages(1L, 1L);
+            BulkReadResult result = chatMessageService.readMessages(1L, 1L);
 
             assertThat(result.success()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("메시지 수정")
+    class EditMessage {
+
+        @Test
+        @DisplayName("본인 메시지를 수정하면 EditResult를 반환한다")
+        void editMessage_shouldReturnEditResult() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User sender = createUser(1L, "sender");
+            Message message = createMessage(1L, chatRoom, sender, "원본", 2);
+            ChatRoomUser member = createChatRoomUser(1L, chatRoom, sender);
+
+            given(messageRepository.findById(1L)).willReturn(Optional.of(message));
+            given(chatRoomUserRepository.findByChatRoomIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(member));
+
+            EditResult result = chatMessageService.editMessage(1L, 1L, "수정됨");
+
+            assertThat(result.message().getContent()).isEqualTo("수정됨");
+            assertThat(result.message().isEdited()).isTrue();
+            assertThat(result.members()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 메시지이면 예외가 발생한다")
+        void editMessage_messageNotFound_shouldThrow() {
+            given(messageRepository.findById(99L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> chatMessageService.editMessage(1L, 99L, "수정"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("메시지가 존재하지 않습니다");
+        }
+
+        @Test
+        @DisplayName("다른 사람의 메시지를 수정하면 예외가 발생한다")
+        void editMessage_notOwner_shouldThrow() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User sender = createUser(1L, "sender");
+            Message message = createMessage(1L, chatRoom, sender, "원본", 2);
+
+            given(messageRepository.findById(1L)).willReturn(Optional.of(message));
+
+            assertThatThrownBy(() -> chatMessageService.editMessage(99L, 1L, "수정"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("본인의 메시지만");
+        }
+    }
+
+    @Nested
+    @DisplayName("메시지 삭제")
+    class DeleteMessage {
+
+        @Test
+        @DisplayName("본인 메시지를 삭제하면 DeleteResult를 반환한다")
+        void deleteMessage_shouldReturnDeleteResult() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User sender = createUser(1L, "sender");
+            Message message = createMessage(1L, chatRoom, sender, "원본", 2);
+            ChatRoomUser member = createChatRoomUser(1L, chatRoom, sender);
+
+            given(messageRepository.findById(1L)).willReturn(Optional.of(message));
+            given(chatRoomUserRepository.findByChatRoomIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(member));
+
+            DeleteResult result = chatMessageService.deleteMessage(1L, 1L);
+
+            assertThat(result.message().isDeleted()).isTrue();
+            assertThat(result.members()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("다른 사람의 메시지를 삭제하면 예외가 발생한다")
+        void deleteMessage_notOwner_shouldThrow() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User sender = createUser(1L, "sender");
+            Message message = createMessage(1L, chatRoom, sender, "원본", 2);
+
+            given(messageRepository.findById(1L)).willReturn(Optional.of(message));
+
+            assertThatThrownBy(() -> chatMessageService.deleteMessage(99L, 1L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("본인의 메시지만");
         }
     }
 }

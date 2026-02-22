@@ -53,13 +53,13 @@ class ChatFlowIntegrationTest extends IntegrationTestBase {
         assertThat(room.members()).containsExactlyInAnyOrder("alice", "bob");
 
         // 5. 메시지 전송
-        ChatMessageService.SendResult sendResult = chatMessageService.sendMessage(
+        SendResult sendResult = chatMessageService.sendMessage(
                 userId1, room.id(), "Hello Bob!");
         assertThat(sendResult.message().getContent()).isEqualTo("Hello Bob!");
         assertThat(sendResult.message().getUnreadCount()).isEqualTo(1);
 
         // 6. 읽음 처리
-        ChatMessageService.BulkReadResult readResult = chatMessageService.readMessages(userId2, room.id());
+        BulkReadResult readResult = chatMessageService.readMessages(userId2, room.id());
         assertThat(readResult.success()).isTrue();
         assertThat(readResult.lastReadMessageId()).isEqualTo(sendResult.message().getId());
     }

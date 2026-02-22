@@ -1,9 +1,9 @@
 package com.bok.chat.websocket;
 
+import com.bok.chat.api.dto.BulkReadResult;
+import com.bok.chat.api.dto.SendResult;
+import com.bok.chat.api.dto.UndeliveredMessages;
 import com.bok.chat.api.service.ChatMessageService;
-import com.bok.chat.api.service.ChatMessageService.BulkReadResult;
-import com.bok.chat.api.service.ChatMessageService.SendResult;
-import com.bok.chat.api.service.ChatMessageService.UndeliveredMessages;
 import com.bok.chat.api.service.ChatRoomService;
 import com.bok.chat.api.service.FriendService;
 import com.bok.chat.config.ServerIdHolder;

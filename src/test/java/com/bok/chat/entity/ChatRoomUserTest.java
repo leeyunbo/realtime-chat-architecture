@@ -1,6 +1,7 @@
 package com.bok.chat.entity;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static com.bok.chat.support.TestFixtures.*;
@@ -25,6 +26,15 @@ class ChatRoomUserTest {
     }
 
     @Test
+    @DisplayName("생성 시 joinedAt이 설정된다")
+    void create_shouldSetJoinedAt() {
+        ChatRoomUser chatRoomUser = createChatRoomUser(1L,
+                createChatRoom(1L, 2), createUser(1L, "user1"));
+
+        assertThat(chatRoomUser.getJoinedAt()).isNotNull();
+    }
+
+    @Test
     @DisplayName("leave() 호출 시 상태가 LEFT로 변경된다")
     void leave_shouldChangeStatusToLeft() {
         ChatRoomUser chatRoomUser = createChatRoomUser(1L,
@@ -33,6 +43,49 @@ class ChatRoomUserTest {
         chatRoomUser.leave();
 
         assertThat(chatRoomUser.getStatus()).isEqualTo(ChatRoomUser.Status.LEFT);
+    }
+
+    @Nested
+    @DisplayName("rejoin")
+    class Rejoin {
+
+        @Test
+        @DisplayName("rejoin 시 상태가 ACTIVE로 변경된다")
+        void rejoin_shouldChangeStatusToActive() {
+            ChatRoomUser chatRoomUser = createChatRoomUser(1L,
+                    createChatRoom(1L, 2), createUser(1L, "user1"));
+            chatRoomUser.leave();
+
+            chatRoomUser.rejoin();
+
+            assertThat(chatRoomUser.getStatus()).isEqualTo(ChatRoomUser.Status.ACTIVE);
+        }
+
+        @Test
+        @DisplayName("rejoin 시 lastReadMessageId가 null로 초기화된다")
+        void rejoin_shouldResetLastReadMessageId() {
+            ChatRoomUser chatRoomUser = createChatRoomUser(1L,
+                    createChatRoom(1L, 2), createUser(1L, "user1"));
+            chatRoomUser.updateLastReadMessageId(10L);
+            chatRoomUser.leave();
+
+            chatRoomUser.rejoin();
+
+            assertThat(chatRoomUser.getLastReadMessageId()).isNull();
+        }
+
+        @Test
+        @DisplayName("rejoin 시 joinedAt이 갱신된다")
+        void rejoin_shouldUpdateJoinedAt() {
+            ChatRoomUser chatRoomUser = createChatRoomUser(1L,
+                    createChatRoom(1L, 2), createUser(1L, "user1"));
+            var originalJoinedAt = chatRoomUser.getJoinedAt();
+            chatRoomUser.leave();
+
+            chatRoomUser.rejoin();
+
+            assertThat(chatRoomUser.getJoinedAt()).isAfterOrEqualTo(originalJoinedAt);
+        }
     }
 
     @Test

@@ -2,11 +2,15 @@ package com.bok.chat.api.service;
 
 import com.bok.chat.api.dto.ChatRoomResponse;
 import com.bok.chat.api.dto.CreateChatRoomRequest;
+import com.bok.chat.api.dto.InviteResult;
+import com.bok.chat.api.dto.LeaveResult;
 import com.bok.chat.entity.ChatRoom;
 import com.bok.chat.entity.ChatRoomUser;
+import com.bok.chat.entity.Message;
 import com.bok.chat.entity.User;
 import com.bok.chat.repository.*;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @DisplayName("ChatRoomService")
 @ExtendWith(MockitoExtension.class)
@@ -130,5 +135,178 @@ class ChatRoomServiceTest {
 
         assertThat(rooms).hasSize(1);
         assertThat(rooms.get(0).unreadCount()).isEqualTo(3);
+    }
+
+    @Nested
+    @DisplayName("멤버 초대")
+    class InviteMembers {
+
+        @Test
+        @DisplayName("새 멤버를 초대하면 초대된 유저 ID와 시스템 메시지를 반환한다")
+        void inviteMembers_shouldReturnInvitedUserIds() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User inviter = createUser(1L, "inviter");
+            User newUser = createUser(3L, "newbie");
+            ChatRoomUser inviterMembership = createChatRoomUser(1L, chatRoom, inviter);
+            ChatRoomUser newMembership = createChatRoomUser(3L, chatRoom, newUser);
+
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
+                    .willReturn(Optional.of(inviterMembership));
+            given(friendshipRepository.existsFriendship(1L, 3L)).willReturn(true);
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 3L))
+                    .willReturn(Optional.empty());
+            given(userRepository.findById(3L)).willReturn(Optional.of(newUser));
+            given(chatRoomUserRepository.save(any(ChatRoomUser.class))).willAnswer(inv -> inv.getArgument(0));
+            given(chatRoomUserRepository.findByChatRoomIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(inviterMembership, newMembership));
+            given(messageRepository.save(any(Message.class))).willAnswer(inv -> inv.getArgument(0));
+
+            InviteResult result = chatRoomService.inviteMembers(1L, 1L, List.of(3L));
+
+            assertThat(result.invitedUserIds()).containsExactly(3L);
+            assertThat(result.systemMessage()).isNotNull();
+            assertThat(result.systemMessage().getContent()).contains("newbie");
+        }
+
+        @Test
+        @DisplayName("자기 자신을 초대하면 예외가 발생한다")
+        void inviteMembers_selfInvite_shouldThrow() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User inviter = createUser(1L, "inviter");
+            ChatRoomUser inviterMembership = createChatRoomUser(1L, chatRoom, inviter);
+
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
+                    .willReturn(Optional.of(inviterMembership));
+
+            assertThatThrownBy(() -> chatRoomService.inviteMembers(1L, 1L, List.of(1L)))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("자기 자신은 초대할 수 없습니다");
+        }
+
+        @Test
+        @DisplayName("친구가 아닌 사용자를 초대하면 예외가 발생한다")
+        void inviteMembers_notFriend_shouldThrow() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User inviter = createUser(1L, "inviter");
+            ChatRoomUser inviterMembership = createChatRoomUser(1L, chatRoom, inviter);
+
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
+                    .willReturn(Optional.of(inviterMembership));
+            given(friendshipRepository.existsFriendship(1L, 3L)).willReturn(false);
+
+            assertThatThrownBy(() -> chatRoomService.inviteMembers(1L, 1L, List.of(3L)))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("친구가 아닌 사용자");
+        }
+
+        @Test
+        @DisplayName("이미 ACTIVE인 멤버는 스킵된다")
+        void inviteMembers_alreadyActive_shouldSkip() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User inviter = createUser(1L, "inviter");
+            User existing = createUser(2L, "existing");
+            ChatRoomUser inviterMembership = createChatRoomUser(1L, chatRoom, inviter);
+            ChatRoomUser existingMembership = createChatRoomUser(2L, chatRoom, existing);
+
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
+                    .willReturn(Optional.of(inviterMembership));
+            given(friendshipRepository.existsFriendship(1L, 2L)).willReturn(true);
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 2L))
+                    .willReturn(Optional.of(existingMembership));
+            given(chatRoomUserRepository.findByChatRoomIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(inviterMembership, existingMembership));
+
+            InviteResult result = chatRoomService.inviteMembers(1L, 1L, List.of(2L));
+
+            assertThat(result.invitedUserIds()).isEmpty();
+            assertThat(result.systemMessage()).isNull();
+        }
+
+        @Test
+        @DisplayName("LEFT 상태 멤버는 rejoin 처리된다")
+        void inviteMembers_leftMember_shouldRejoin() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User inviter = createUser(1L, "inviter");
+            User leftUser = createUser(2L, "leftie");
+            ChatRoomUser inviterMembership = createChatRoomUser(1L, chatRoom, inviter);
+            ChatRoomUser leftMembership = createChatRoomUser(2L, chatRoom, leftUser);
+            leftMembership.leave();
+
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
+                    .willReturn(Optional.of(inviterMembership));
+            given(friendshipRepository.existsFriendship(1L, 2L)).willReturn(true);
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 2L))
+                    .willReturn(Optional.of(leftMembership));
+            given(chatRoomUserRepository.findByChatRoomIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(inviterMembership, leftMembership));
+            given(messageRepository.save(any(Message.class))).willAnswer(inv -> inv.getArgument(0));
+
+            InviteResult result = chatRoomService.inviteMembers(1L, 1L, List.of(2L));
+
+            assertThat(result.invitedUserIds()).containsExactly(2L);
+            assertThat(leftMembership.getStatus()).isEqualTo(ChatRoomUser.Status.ACTIVE);
+        }
+    }
+
+    @Nested
+    @DisplayName("채팅방 퇴장")
+    class LeaveRoom {
+
+        @Test
+        @DisplayName("퇴장하면 시스템 메시지와 남은 멤버를 반환한다")
+        void leaveRoom_shouldReturnSystemMessageAndRemainingMembers() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User user = createUser(1L, "alice");
+            User other = createUser(2L, "bob");
+            ChatRoomUser membership = createChatRoomUser(1L, chatRoom, user);
+            ChatRoomUser otherMembership = createChatRoomUser(2L, chatRoom, other);
+
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
+                    .willReturn(Optional.of(membership));
+            given(chatRoomUserRepository.findByChatRoomIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(otherMembership));
+            given(messageRepository.save(any(Message.class))).willAnswer(inv -> inv.getArgument(0));
+
+            LeaveResult result = chatRoomService.leaveRoom(1L, 1L);
+
+            assertThat(membership.getStatus()).isEqualTo(ChatRoomUser.Status.LEFT);
+            assertThat(result.systemMessage()).isNotNull();
+            assertThat(result.systemMessage().getContent()).contains("alice");
+            assertThat(result.remainingMembers()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("활성 멤버가 아니면 예외가 발생한다")
+        void leaveRoom_notActiveMember_shouldThrow() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User user = createUser(1L, "alice");
+            ChatRoomUser membership = createChatRoomUser(1L, chatRoom, user);
+            membership.leave();
+
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
+                    .willReturn(Optional.of(membership));
+
+            assertThatThrownBy(() -> chatRoomService.leaveRoom(1L, 1L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("활성 멤버가 아닙니다");
+        }
+
+        @Test
+        @DisplayName("마지막 멤버가 퇴장하면 시스템 메시지가 생성되지 않는다")
+        void leaveRoom_lastMember_shouldNotCreateSystemMessage() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User user = createUser(1L, "alice");
+            ChatRoomUser membership = createChatRoomUser(1L, chatRoom, user);
+
+            given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
+                    .willReturn(Optional.of(membership));
+            given(chatRoomUserRepository.findByChatRoomIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of());
+
+            LeaveResult result = chatRoomService.leaveRoom(1L, 1L);
+
+            assertThat(result.systemMessage()).isNull();
+            assertThat(result.remainingMembers()).isEmpty();
+        }
     }
 }
