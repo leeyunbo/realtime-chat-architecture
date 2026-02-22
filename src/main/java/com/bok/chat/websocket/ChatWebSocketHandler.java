@@ -1,11 +1,14 @@
 package com.bok.chat.websocket;
 
+import com.bok.chat.api.dto.BulkReadResult;
+import com.bok.chat.api.dto.DeleteResult;
+import com.bok.chat.api.dto.EditResult;
+import com.bok.chat.api.dto.InviteResult;
+import com.bok.chat.api.dto.LeaveResult;
+import com.bok.chat.api.dto.SendResult;
+import com.bok.chat.api.dto.UndeliveredMessages;
 import com.bok.chat.api.service.ChatMessageService;
-import com.bok.chat.api.service.ChatMessageService.BulkReadResult;
-import com.bok.chat.api.service.ChatMessageService.SendResult;
-import com.bok.chat.api.service.ChatMessageService.UndeliveredMessages;
 import com.bok.chat.api.service.ChatRoomService;
-import com.bok.chat.api.service.ChatRoomService.InviteResult;
 import com.bok.chat.entity.Message;
 import com.bok.chat.api.service.FriendService;
 import com.bok.chat.config.ServerIdHolder;
@@ -91,9 +94,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 result.message().getId(),
                 result.message().getUnreadCount());
 
-        for (ChatRoomUser member : result.members()) {
-            sendToUser(member.getUser().getId(), outgoing);
-        }
+        broadcastToMembers(result.members(), outgoing);
     }
 
     private void handleReadMessage(Long userId, WebSocketMessage message) {
@@ -121,10 +122,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         WebSocketMessage outgoing = WebSocketMessage.roomInvite(
                 message.getChatRoomId(), result.invitedUserIds());
-
-        for (ChatRoomUser member : result.allMembers()) {
-            sendToUser(member.getUser().getId(), outgoing);
-        }
+        broadcastToMembers(result.allMembers(), outgoing);
 
         if (result.systemMessage() != null) {
             WebSocketMessage sysMsg = WebSocketMessage.messageReceived(
@@ -132,15 +130,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                     result.systemMessage().getContent(),
                     result.systemMessage().getId(),
                     result.systemMessage().getUnreadCount());
-
-            for (ChatRoomUser member : result.allMembers()) {
-                sendToUser(member.getUser().getId(), sysMsg);
-            }
+            broadcastToMembers(result.allMembers(), sysMsg);
         }
     }
 
     private void handleUpdateMessage(Long userId, WebSocketMessage message) {
-        ChatMessageService.EditResult result = chatMessageService.editMessage(
+        EditResult result = chatMessageService.editMessage(
                 userId, message.getMessageId(), message.getContent());
 
         WebSocketMessage outgoing = WebSocketMessage.messageEditedBroadcast(
@@ -149,13 +144,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 userId,
                 result.message().getContent());
 
-        for (ChatRoomUser member : result.members()) {
-            sendToUser(member.getUser().getId(), outgoing);
-        }
+        broadcastToMembers(result.members(), outgoing);
     }
 
     private void handleDeleteMessage(Long userId, WebSocketMessage message) {
-        ChatMessageService.DeleteResult result = chatMessageService.deleteMessage(
+        DeleteResult result = chatMessageService.deleteMessage(
                 userId, message.getMessageId());
 
         WebSocketMessage outgoing = WebSocketMessage.messageDeletedBroadcast(
@@ -163,13 +156,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 result.message().getId(),
                 userId);
 
-        for (ChatRoomUser member : result.members()) {
-            sendToUser(member.getUser().getId(), outgoing);
-        }
+        broadcastToMembers(result.members(), outgoing);
     }
 
     private void handleRoomLeave(Long userId, WebSocketMessage message) {
-        ChatRoomService.LeaveResult result = chatRoomService.leaveRoom(userId, message.getChatRoomId());
+        LeaveResult result = chatRoomService.leaveRoom(userId, message.getChatRoomId());
 
         if (result.systemMessage() != null) {
             WebSocketMessage outgoing = WebSocketMessage.messageReceived(
@@ -177,10 +168,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                     result.systemMessage().getContent(),
                     result.systemMessage().getId(),
                     result.systemMessage().getUnreadCount());
-
-            for (ChatRoomUser member : result.remainingMembers()) {
-                sendToUser(member.getUser().getId(), outgoing);
-            }
+            broadcastToMembers(result.remainingMembers(), outgoing);
         }
     }
 
@@ -201,6 +189,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                     return;
                 }
             }
+        }
+    }
+
+    private void broadcastToMembers(List<ChatRoomUser> members, WebSocketMessage message) {
+        for (ChatRoomUser member : members) {
+            sendToUser(member.getUser().getId(), message);
         }
     }
 

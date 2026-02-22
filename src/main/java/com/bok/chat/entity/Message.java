@@ -55,13 +55,24 @@ public class Message extends BaseEntity {
         return new Message(chatRoom, null, content, memberCount > 0 ? memberCount - 1 : 0, MessageType.SYSTEM);
     }
 
-    public void edit(String newContent) {
+    public void edit(Long requestUserId, String newContent) {
+        validateOwnership(requestUserId);
+        if (this.deleted) {
+            throw new IllegalArgumentException("삭제된 메시지는 수정할 수 없습니다.");
+        }
         this.content = newContent;
         this.edited = true;
     }
 
-    public void markDeleted() {
+    public void markDeleted(Long requestUserId) {
+        validateOwnership(requestUserId);
         this.deleted = true;
+    }
+
+    private void validateOwnership(Long requestUserId) {
+        if (this.sender == null || !this.sender.getId().equals(requestUserId)) {
+            throw new IllegalArgumentException("본인의 메시지만 수정/삭제할 수 있습니다.");
+        }
     }
 
     public enum MessageType { CHAT, SYSTEM }

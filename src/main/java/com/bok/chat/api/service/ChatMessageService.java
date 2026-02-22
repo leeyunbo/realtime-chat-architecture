@@ -1,5 +1,10 @@
 package com.bok.chat.api.service;
 
+import com.bok.chat.api.dto.BulkReadResult;
+import com.bok.chat.api.dto.DeleteResult;
+import com.bok.chat.api.dto.EditResult;
+import com.bok.chat.api.dto.SendResult;
+import com.bok.chat.api.dto.UndeliveredMessages;
 import com.bok.chat.entity.ChatRoomUser;
 import com.bok.chat.entity.Message;
 import com.bok.chat.entity.User;
@@ -23,18 +28,6 @@ public class ChatMessageService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomUserRepository chatRoomUserRepository;
     private final UserRepository userRepository;
-
-    public record SendResult(Message message, User sender, List<ChatRoomUser> members) {}
-    public record UndeliveredMessages(Long chatRoomId, List<Message> messages) {}
-    public record EditResult(Message message, List<ChatRoomUser> members) {}
-    public record DeleteResult(Message message, List<ChatRoomUser> members) {}
-    public record BulkReadResult(boolean success, Long chatRoomId, Long readByUserId,
-                                 Long lastReadMessageId, List<ChatRoomUser> members) {
-
-        public static BulkReadResult nothingToRead() {
-            return new BulkReadResult(false, null, null, null, List.of());
-        }
-    }
 
     @Transactional(readOnly = true)
     public List<UndeliveredMessages> getUndeliveredMessages(Long userId) {
@@ -107,15 +100,7 @@ public class ChatMessageService {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new IllegalArgumentException("메시지가 존재하지 않습니다."));
 
-        if (message.getSender() == null || !message.getSender().getId().equals(userId)) {
-            throw new IllegalArgumentException("본인의 메시지만 수정할 수 있습니다.");
-        }
-
-        if (message.isDeleted()) {
-            throw new IllegalArgumentException("삭제된 메시지는 수정할 수 없습니다.");
-        }
-
-        message.edit(newContent);
+        message.edit(userId, newContent);
 
         List<ChatRoomUser> members = chatRoomUserRepository
                 .findByChatRoomIdAndStatus(message.getChatRoom().getId(), ChatRoomUser.Status.ACTIVE);
@@ -128,11 +113,7 @@ public class ChatMessageService {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new IllegalArgumentException("메시지가 존재하지 않습니다."));
 
-        if (message.getSender() == null || !message.getSender().getId().equals(userId)) {
-            throw new IllegalArgumentException("본인의 메시지만 삭제할 수 있습니다.");
-        }
-
-        message.markDeleted();
+        message.markDeleted(userId);
 
         List<ChatRoomUser> members = chatRoomUserRepository
                 .findByChatRoomIdAndStatus(message.getChatRoom().getId(), ChatRoomUser.Status.ACTIVE);

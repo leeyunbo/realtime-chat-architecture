@@ -2,6 +2,8 @@ package com.bok.chat.api.service;
 
 import com.bok.chat.api.dto.ChatRoomResponse;
 import com.bok.chat.api.dto.CreateChatRoomRequest;
+import com.bok.chat.api.dto.InviteResult;
+import com.bok.chat.api.dto.LeaveResult;
 import com.bok.chat.entity.ChatRoom;
 import com.bok.chat.entity.ChatRoomUser;
 import com.bok.chat.entity.Message;
@@ -17,8 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -75,10 +75,6 @@ public class ChatRoomService {
         }).toList();
     }
 
-    public record InviteResult(List<Long> invitedUserIds, List<ChatRoomUser> allMembers,
-                               Message systemMessage) {}
-    public record LeaveResult(Message systemMessage, List<ChatRoomUser> remainingMembers) {}
-
     @Transactional
     public InviteResult inviteMembers(Long inviterId, Long chatRoomId, List<Long> userIds) {
         ChatRoomUser inviterMembership = chatRoomUserRepository.findByChatRoomIdAndUserId(chatRoomId, inviterId)
@@ -91,29 +87,17 @@ public class ChatRoomService {
         List<String> invitedNames = new ArrayList<>();
 
         for (Long userId : userIds) {
-            if (userId.equals(inviterId)) continue;
+            if (userId.equals(inviterId)) {
+                throw new IllegalArgumentException("자기 자신은 초대할 수 없습니다.");
+            }
 
             if (!friendshipRepository.existsFriendship(inviterId, userId)) {
                 throw new IllegalArgumentException("친구가 아닌 사용자입니다: " + userId);
             }
 
-            Optional<ChatRoomUser> existing = chatRoomUserRepository.findByChatRoomIdAndUserId(chatRoomId, userId);
-            User user;
-            if (existing.isPresent()) {
-                ChatRoomUser cru = existing.get();
-                if (cru.getStatus() == ChatRoomUser.Status.ACTIVE) {
-                    continue;
-                }
-                cru.rejoin();
-                user = cru.getUser();
-            } else {
-                user = userRepository.findById(userId)
-                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다: " + userId));
-                chatRoomUserRepository.save(ChatRoomUser.builder()
-                        .chatRoom(chatRoom)
-                        .user(user)
-                        .build());
-            }
+            User user = addOrRejoinMember(chatRoomId, userId, chatRoom);
+            if (user == null) continue;
+
             invitedUserIds.add(userId);
             invitedNames.add(user.getUsername());
         }
@@ -151,6 +135,27 @@ public class ChatRoomService {
         }
 
         return new LeaveResult(systemMessage, remainingMembers);
+    }
+
+    private User addOrRejoinMember(Long chatRoomId, Long userId, ChatRoom chatRoom) {
+        var existing = chatRoomUserRepository.findByChatRoomIdAndUserId(chatRoomId, userId);
+
+        if (existing.isPresent()) {
+            ChatRoomUser cru = existing.get();
+            if (cru.getStatus() == ChatRoomUser.Status.ACTIVE) {
+                return null;
+            }
+            cru.rejoin();
+            return cru.getUser();
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다: " + userId));
+        chatRoomUserRepository.save(ChatRoomUser.builder()
+                .chatRoom(chatRoom)
+                .user(user)
+                .build());
+        return user;
     }
 
     private long getUnreadCount(ChatRoomUser chatRoomUser) {
