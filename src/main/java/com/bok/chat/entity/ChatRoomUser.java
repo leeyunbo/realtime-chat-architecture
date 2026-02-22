@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "chat_room_users",
         uniqueConstraints = @UniqueConstraint(columnNames = {"chatroom_id", "user_id"}))
@@ -33,15 +35,25 @@ public class ChatRoomUser extends BaseEntity {
 
     private Long lastReadMessageId;
 
+    @Column(nullable = false)
+    private LocalDateTime joinedAt;
+
     @Builder
     public ChatRoomUser(ChatRoom chatRoom, User user) {
         this.chatRoom = chatRoom;
         this.user = user;
         this.status = Status.ACTIVE;
+        this.joinedAt = LocalDateTime.now();
     }
 
     public void leave() {
         this.status = Status.LEFT;
+    }
+
+    public void rejoin() {
+        this.status = Status.ACTIVE;
+        this.joinedAt = LocalDateTime.now();
+        this.lastReadMessageId = null;
     }
 
     public long getLastReadMessageIdOrDefault() {

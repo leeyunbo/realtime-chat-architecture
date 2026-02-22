@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -17,6 +19,9 @@ public class WebSocketMessage {
     private Long messageId;
     private Integer unreadCount;
     private Boolean online;
+    private List<Long> userIds;
+    private Boolean edited;
+    private Boolean deleted;
 
     private WebSocketMessage(MessageType type, Long chatRoomId, Long senderId,
                              String senderName, String content, Long messageId,
@@ -48,12 +53,30 @@ public class WebSocketMessage {
                 userId, username, null, null, null, online);
     }
 
-    /**
-     * 채팅방 일괄 읽음 알림.
-     * 클라이언트는 해당 방의 메시지 중 id <= lastReadMessageId인 것의 unreadCount를 1 차감.
-     */
     public static WebSocketMessage messagesRead(Long chatRoomId, Long readByUserId, Long lastReadMessageId) {
         return new WebSocketMessage(MessageType.MESSAGES_READ, chatRoomId,
                 readByUserId, null, null, lastReadMessageId, null, null);
+    }
+
+    public static WebSocketMessage roomInvite(Long chatRoomId, List<Long> invitedUserIds) {
+        WebSocketMessage msg = new WebSocketMessage(MessageType.ROOM_INVITE, chatRoomId,
+                null, null, null, null, null, null);
+        msg.userIds = invitedUserIds;
+        return msg;
+    }
+
+    public static WebSocketMessage messageEditedBroadcast(Long chatRoomId, Long messageId,
+                                                           Long senderId, String content) {
+        WebSocketMessage msg = new WebSocketMessage(MessageType.MESSAGE_UPDATED, chatRoomId,
+                senderId, null, content, messageId, null, null);
+        msg.edited = true;
+        return msg;
+    }
+
+    public static WebSocketMessage messageDeletedBroadcast(Long chatRoomId, Long messageId, Long senderId) {
+        WebSocketMessage msg = new WebSocketMessage(MessageType.MESSAGE_UPDATED, chatRoomId,
+                senderId, null, null, messageId, null, null);
+        msg.deleted = true;
+        return msg;
     }
 }

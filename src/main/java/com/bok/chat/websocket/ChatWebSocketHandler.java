@@ -4,6 +4,8 @@ import com.bok.chat.api.service.ChatMessageService;
 import com.bok.chat.api.service.ChatMessageService.BulkReadResult;
 import com.bok.chat.api.service.ChatMessageService.SendResult;
 import com.bok.chat.api.service.ChatMessageService.UndeliveredMessages;
+import com.bok.chat.api.service.ChatRoomService;
+import com.bok.chat.api.service.ChatRoomService.InviteResult;
 import com.bok.chat.entity.Message;
 import com.bok.chat.api.service.FriendService;
 import com.bok.chat.config.ServerIdHolder;
@@ -31,6 +33,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final WebSocketSessionManager sessionManager;
     private final ChatMessageService chatMessageService;
+    private final ChatRoomService chatRoomService;
     private final FriendService friendService;
     private final OnlineStatusService onlineStatusService;
     private final RedisMessageRelay redisMessageRelay;
@@ -57,6 +60,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         switch (message.getType()) {
             case MESSAGE_SEND -> handleSendMessage(userId, message);
             case MESSAGE_READ -> handleReadMessage(userId, message);
+            case MESSAGE_UPDATE -> handleUpdateMessage(userId, message);
+            case MESSAGE_DELETE -> handleDeleteMessage(userId, message);
+            case ROOM_INVITE -> handleRoomInvite(userId, message);
+            case ROOM_LEAVE -> handleRoomLeave(userId, message);
             case HEARTBEAT -> onlineStatusService.refreshOnline(userId);
             default -> log.warn("Unknown message type: {}", message.getType());
         }
@@ -106,13 +113,86 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    private void handleRoomInvite(Long inviterId, WebSocketMessage message) {
+        InviteResult result = chatRoomService.inviteMembers(
+                inviterId, message.getChatRoomId(), message.getUserIds());
+
+        if (result.invitedUserIds().isEmpty()) return;
+
+        WebSocketMessage outgoing = WebSocketMessage.roomInvite(
+                message.getChatRoomId(), result.invitedUserIds());
+
+        for (ChatRoomUser member : result.allMembers()) {
+            sendToUser(member.getUser().getId(), outgoing);
+        }
+
+        if (result.systemMessage() != null) {
+            WebSocketMessage sysMsg = WebSocketMessage.messageReceived(
+                    message.getChatRoomId(), null, null,
+                    result.systemMessage().getContent(),
+                    result.systemMessage().getId(),
+                    result.systemMessage().getUnreadCount());
+
+            for (ChatRoomUser member : result.allMembers()) {
+                sendToUser(member.getUser().getId(), sysMsg);
+            }
+        }
+    }
+
+    private void handleUpdateMessage(Long userId, WebSocketMessage message) {
+        ChatMessageService.EditResult result = chatMessageService.editMessage(
+                userId, message.getMessageId(), message.getContent());
+
+        WebSocketMessage outgoing = WebSocketMessage.messageEditedBroadcast(
+                result.message().getChatRoom().getId(),
+                result.message().getId(),
+                userId,
+                result.message().getContent());
+
+        for (ChatRoomUser member : result.members()) {
+            sendToUser(member.getUser().getId(), outgoing);
+        }
+    }
+
+    private void handleDeleteMessage(Long userId, WebSocketMessage message) {
+        ChatMessageService.DeleteResult result = chatMessageService.deleteMessage(
+                userId, message.getMessageId());
+
+        WebSocketMessage outgoing = WebSocketMessage.messageDeletedBroadcast(
+                result.message().getChatRoom().getId(),
+                result.message().getId(),
+                userId);
+
+        for (ChatRoomUser member : result.members()) {
+            sendToUser(member.getUser().getId(), outgoing);
+        }
+    }
+
+    private void handleRoomLeave(Long userId, WebSocketMessage message) {
+        ChatRoomService.LeaveResult result = chatRoomService.leaveRoom(userId, message.getChatRoomId());
+
+        if (result.systemMessage() != null) {
+            WebSocketMessage outgoing = WebSocketMessage.messageReceived(
+                    message.getChatRoomId(), null, null,
+                    result.systemMessage().getContent(),
+                    result.systemMessage().getId(),
+                    result.systemMessage().getUnreadCount());
+
+            for (ChatRoomUser member : result.remainingMembers()) {
+                sendToUser(member.getUser().getId(), outgoing);
+            }
+        }
+    }
+
     private void sendPendingMessages(WebSocketSession session, Long userId) {
         List<UndeliveredMessages> pending = chatMessageService.getUndeliveredMessages(userId);
         for (UndeliveredMessages group : pending) {
             for (Message msg : group.messages()) {
                 WebSocketMessage outgoing = WebSocketMessage.messageReceived(
-                        group.chatRoomId(), msg.getSender().getId(),
-                        msg.getSender().getUsername(), msg.getContent(),
+                        group.chatRoomId(),
+                        msg.getSender() != null ? msg.getSender().getId() : null,
+                        msg.getSender() != null ? msg.getSender().getUsername() : null,
+                        msg.getContent(),
                         msg.getId(), msg.getUnreadCount());
                 try {
                     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(outgoing)));

@@ -7,12 +7,20 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
     List<Message> findByChatRoomIdOrderByCreatedAtDesc(Long chatRoomId, Pageable pageable);
+
+    @Query("SELECT m FROM Message m LEFT JOIN FETCH m.sender " +
+            "WHERE m.chatRoom.id = :chatRoomId AND m.createdAt >= :joinedAt " +
+            "ORDER BY m.createdAt DESC")
+    List<Message> findByChatRoomIdAndCreatedAtAfter(@Param("chatRoomId") Long chatRoomId,
+                                                     @Param("joinedAt") LocalDateTime joinedAt,
+                                                     Pageable pageable);
 
     @Modifying
     @Query("UPDATE Message m SET m.unreadCount = m.unreadCount - 1 " +
@@ -27,7 +35,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     long countUnreadMessages(@Param("chatRoomId") Long chatRoomId,
                              @Param("lastReadMessageId") Long lastReadMessageId);
 
-    @Query("SELECT m FROM Message m JOIN FETCH m.sender " +
+    @Query("SELECT m FROM Message m LEFT JOIN FETCH m.sender " +
             "WHERE m.chatRoom.id = :chatRoomId AND m.id > :lastReadMessageId ORDER BY m.id ASC")
     List<Message> findUnreadMessages(@Param("chatRoomId") Long chatRoomId,
                                      @Param("lastReadMessageId") Long lastReadMessageId);

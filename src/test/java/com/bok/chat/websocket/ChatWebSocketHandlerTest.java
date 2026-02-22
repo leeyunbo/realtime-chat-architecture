@@ -4,6 +4,7 @@ import com.bok.chat.api.service.ChatMessageService;
 import com.bok.chat.api.service.ChatMessageService.BulkReadResult;
 import com.bok.chat.api.service.ChatMessageService.SendResult;
 import com.bok.chat.api.service.ChatMessageService.UndeliveredMessages;
+import com.bok.chat.api.service.ChatRoomService;
 import com.bok.chat.api.service.FriendService;
 import com.bok.chat.config.ServerIdHolder;
 import com.bok.chat.entity.ChatRoomUser;
@@ -48,6 +49,9 @@ class ChatWebSocketHandlerTest {
 
     @Mock
     private ChatMessageService chatMessageService;
+
+    @Mock
+    private ChatRoomService chatRoomService;
 
     @Mock
     private FriendService friendService;

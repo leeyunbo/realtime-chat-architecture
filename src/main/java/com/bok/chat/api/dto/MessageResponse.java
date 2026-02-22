@@ -8,5 +8,7 @@ public record MessageResponse(
         String senderName,
         String content,
         int unreadCount,
+        boolean edited,
+        boolean deleted,
         LocalDateTime createdAt
 ) {}

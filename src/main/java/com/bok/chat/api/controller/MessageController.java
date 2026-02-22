@@ -4,6 +4,7 @@ import com.bok.chat.api.dto.MessageResponse;
 import com.bok.chat.api.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,9 +18,11 @@ public class MessageController {
 
     @GetMapping
     public ResponseEntity<List<MessageResponse>> getMessages(
+            Authentication authentication,
             @PathVariable Long roomId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        return ResponseEntity.ok(messageService.getMessages(roomId, page, size));
+        Long userId = (Long) authentication.getPrincipal();
+        return ResponseEntity.ok(messageService.getMessages(userId, roomId, page, size));
     }
 }
