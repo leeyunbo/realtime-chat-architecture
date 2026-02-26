@@ -13,8 +13,9 @@
 - 채팅방 퇴장
 
 ### Phase 3 (미디어)
-- 이미지/파일 전송
-- 이모티콘
+- 이미지/파일 전송 (3MB 제한, 이미지/PDF/문서)
+- 비동기 썸네일 생성
+- S3 저장 + Presigned URL 다운로드
 
 ---
 
@@ -66,13 +67,27 @@
 | id | BIGINT (PK) | 식별자 |
 | chatroom_id | BIGINT (FK) | 채팅방 ID |
 | sender_id | BIGINT (FK) | 발신자 ID (SYSTEM 타입이면 null) |
-| type | VARCHAR | CHAT / SYSTEM **(Phase 2)** |
+| type | VARCHAR | CHAT / SYSTEM **(Phase 2)** / FILE **(Phase 3)** |
 | content | TEXT | 메시지 내용 |
+| file_id | BIGINT (FK, nullable) | FileAttachment 참조 **(Phase 3)** |
 | unread_count | INT | 안 읽은 사람 수 |
 | edited | BOOLEAN | 수정 여부 **(Phase 2)** |
 | deleted | BOOLEAN | 삭제 여부 (soft delete, content 보존) **(Phase 2)** |
 | created_at | TIMESTAMP | 생성일 |
 | updated_at | TIMESTAMP | 수정일 |
+
+### FileAttachment **(Phase 3)**
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| id | BIGINT (PK) | fileId |
+| uploader_id | BIGINT (FK) | 업로드한 유저 |
+| original_filename | VARCHAR | 원본 파일명 (report.pdf) |
+| stored_path | VARCHAR | S3 경로 (files/{id}/original.pdf) |
+| thumbnail_path | VARCHAR (nullable) | 썸네일 S3 경로 (이미지만) |
+| content_type | VARCHAR | MIME 타입 (image/jpeg, application/pdf) |
+| file_size | BIGINT | 바이트 단위 크기 |
+| thumbnail_status | VARCHAR | PENDING / COMPLETED / FAILED / NONE |
+| created_at | TIMESTAMP | 업로드 시각 |
 
 ---
 
@@ -89,13 +104,15 @@
 | GET | /chatrooms/{roomId}/messages | 과거 메시지 조회 (joined_at 이후만) |
 | GET | /friends | 친구 목록 조회 |
 | POST | /friends | 친구 추가 |
+| POST | /files | 파일 업로드 (multipart, 3MB 제한) **(Phase 3)** |
+| GET | /files/{fileId}/url | Presigned URL 발급 (원본 + 썸네일) **(Phase 3)** |
 
 ### WebSocket Events
 
 **클라이언트 → 서버**
 | 이벤트 | 필드 | 설명 |
 |--------|------|------|
-| message.send | chatRoomId, content | 메시지 전송 |
+| message.send | chatRoomId, content, fileId(optional) | 메시지 전송 (파일 메시지 시 fileId 포함) |
 | message.read | chatRoomId | 메시지 읽음 처리 |
 | message.update | messageId, content | 메시지 수정 (본인만) **(Phase 2)** |
 | message.delete | messageId | 메시지 삭제 (본인만) **(Phase 2)** |
@@ -106,7 +123,7 @@
 **서버 → 클라이언트**
 | 이벤트 | 필드 | 설명 |
 |--------|------|------|
-| message.received | chatRoomId, senderId, senderName, content, messageId, unreadCount, type | 메시지 수신 (CHAT/SYSTEM) |
+| message.received | chatRoomId, senderId, senderName, content, messageId, unreadCount, type, fileId, originalFilename, contentType, fileSize | 메시지 수신 (CHAT/SYSTEM/FILE) |
 | message.updated | chatRoomId, messageId, content, edited, deleted, unreadCount | 메시지 상태 변경 (수정/삭제/읽음) |
 | messages.read | chatRoomId, senderId, messageId | 일괄 읽음 처리 알림 |
 | user.status | senderId, senderName, online | 온라인/오프라인 상태 |
@@ -136,6 +153,10 @@ PostgreSQL         Redis
                    ├── 온라인 상태 (Key-Value + TTL)
                    ├── 유저-서버 매핑 (user:B → server:2)
                    └── 서버 간 메시지 중계 (Pub/Sub, 서버당 1채널)
+
+S3 (MinIO)  ◄── 파일 원본 + 썸네일 저장 (Phase 3)
+    │
+    └── Presigned URL로 클라이언트 직접 다운로드
 ```
 
 ---
@@ -201,6 +222,32 @@ PostgreSQL         Redis
 5. 서버 → 채팅방 멤버: message.received 브로드캐스트 (시스템 메시지)
 ```
 
+### 파일 업로드 + 전송 (Phase 3)
+```
+1. A → REST POST /files: 파일 업로드 (multipart, 3MB 제한)
+2. 서버: 파일 검증 (크기, MIME 타입)
+3. 서버 → S3: 원본 저장 (files/{fileId}/original.xxx)
+4. 서버 → DB: FileAttachment 저장 (thumbnailStatus=PENDING or NONE)
+5. 서버: FileUploadedEvent 발행
+6. 서버 → A: fileId 반환
+
+[비동기 — @Async + @EventListener]
+7. ThumbnailEventListener: 이미지면 썸네일 생성 → S3 저장 (files/{fileId}/thumbnail.jpg)
+8. DB: thumbnailStatus = COMPLETED (또는 FAILED)
+
+[메시지 전송 — 기존 WebSocket 흐름]
+9. A → WebSocket: message.send(chatRoomId, fileId)
+10. 서버: FileAttachment 조회 + 업로더 본인 검증
+11. 서버 → DB: Message 저장 (type=FILE, file_id)
+12. 서버 → 채팅방 멤버: message.received 브로드캐스트 (파일 메타데이터 포함)
+
+[다운로드 — Presigned URL]
+13. 수신자 → REST GET /files/{fileId}/url: Presigned URL 요청
+14. 서버 → S3: Presigned URL 생성 (만료: 5분)
+15. 서버 → 수신자: { originalUrl, thumbnailUrl, expiresIn }
+16. 수신자 → S3: Presigned URL로 직접 다운로드
+```
+
 ---
 
 ## 7. Tech Stack
@@ -211,6 +258,7 @@ PostgreSQL         Redis
 | 프론트엔드 | React |
 | 데이터베이스 | PostgreSQL |
 | 캐시 / Pub/Sub | Redis |
+| 파일 저장소 | S3 (로컬: MinIO) **(Phase 3)** |
 | 배포 | Docker Compose (로컬) |
 
 ---
@@ -227,10 +275,18 @@ Phase 1 (완료)
   Step 6: 읽음/안읽음 처리
   Step 7: 프론트 (React 채팅 UI)
 
-Phase 2
+Phase 2 (완료)
   Step 8: 그룹 채팅 (GROUP 채팅방 생성, 멤버 초대)
   Step 9: 메시지 수정/삭제
   Step 10: 채팅방 퇴장 + 시스템 메시지
+
+Phase 3
+  Step 11: MinIO + S3 연동 (Docker Compose, S3Client 설정)
+  Step 12: 파일 업로드 API (FileAttachment 엔티티, POST /files)
+  Step 13: 비동기 썸네일 생성 (ApplicationEvent + @Async)
+  Step 14: 파일 메시지 전송 (WebSocket message.send + fileId)
+  Step 15: Presigned URL 다운로드 (GET /files/{fileId}/url)
+  Step 16: 프론트엔드 파일 UI (첨부, 미리보기, 다운로드)
 ```
 
 ---
@@ -246,3 +302,11 @@ Phase 2
 | 5 | 재입장 방식 | 본인 재입장 vs 멤버 초대 vs 불가 | 기존 멤버가 재초대 | 방장 없는 구조에서 자연스러운 방식 |
 | 6 | 재입장 시 메시지 범위 | 전체 조회 vs 입장 시점 이후만 | joined_at 이후만 조회 | 퇴장 시 과거 메시지 접근 차단 요구사항 |
 | 7 | 그룹 초대 권한 | 누구나 vs 친구만 | 친구 관계인 경우만 | Phase 1과 동일한 제약 유지 |
+| 8 | 파일 업로드 채널 | REST vs WebSocket | REST API | WebSocket에 바이너리 넣으면 메시지 채널 블로킹 |
+| 9 | 업로드-메시지 관계 | 통합 (한 API) vs 분리 (업로드 → fileId → 메시지) | 분리 | 단계별 독립 실패 처리, 썸네일 비동기 가능 |
+| 10 | 썸네일 알림 방식 | Pull vs Push vs 규칙 기반 URL | 규칙 기반 URL ({fileId}/thumbnail.jpg) | 가장 단순, 3MB 제한이면 생성 빠름 |
+| 11 | 파일 메타데이터 저장 | Message 테이블 통합 vs 별도 테이블 | 별도 테이블 (FileAttachment) | 대부분 텍스트 메시지라 공간 낭비 방지 + 독립 조회 가능 |
+| 12 | 비동기 처리 방식 | @Async vs ApplicationEvent + @Async vs 메시지 큐 | ApplicationEvent + @Async | 디커플링 + 비동기, 현재 규모에 적합 |
+| 13 | 다운로드 방식 | 서버 프록시 vs S3 Presigned URL | Presigned URL | 서버 대역폭 절약, S3 직접 전달 |
+| 14 | 파일 접근 제어 | 채팅방 멤버 체크 vs 업로더 체크 | 업로더 본인 체크 | 최소한의 보안, 같은 파일 여러 방 공유 허용 |
+| 15 | 로컬 S3 환경 | 실제 AWS vs MinIO | MinIO (Docker Compose) | S3 API 호환, 코드 변경 없이 전환 가능 |

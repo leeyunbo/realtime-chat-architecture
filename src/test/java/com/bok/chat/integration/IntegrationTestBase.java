@@ -6,6 +6,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 @SpringBootTest
@@ -15,6 +16,7 @@ public abstract class IntegrationTestBase {
 
     static final PostgreSQLContainer<?> postgres;
     static final GenericContainer<?> redis;
+    static final MinIOContainer minio;
 
     static {
         postgres = new PostgreSQLContainer<>("postgres:16-alpine")
@@ -26,6 +28,11 @@ public abstract class IntegrationTestBase {
         redis = new GenericContainer<>("redis:7-alpine")
                 .withExposedPorts(6379);
         redis.start();
+
+        minio = new MinIOContainer("minio/minio:latest")
+                .withUserName("minioadmin")
+                .withPassword("minioadmin");
+        minio.start();
     }
 
     @DynamicPropertySource
@@ -35,5 +42,8 @@ public abstract class IntegrationTestBase {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
+        registry.add("cloud.aws.s3.endpoint", minio::getS3URL);
+        registry.add("cloud.aws.s3.access-key", () -> "minioadmin");
+        registry.add("cloud.aws.s3.secret-key", () -> "minioadmin");
     }
 }
