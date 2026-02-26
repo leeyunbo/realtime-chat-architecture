@@ -40,4 +40,10 @@ public class TestFixtures {
         ReflectionTestUtils.setField(friendship, "id", id);
         return friendship;
     }
+
+    public static FileAttachment createFileAttachment(Long id, User uploader, String filename, String contentType, long fileSize) {
+        FileAttachment attachment = FileAttachment.create(uploader, filename, contentType, fileSize);
+        ReflectionTestUtils.setField(attachment, "id", id);
+        return attachment;
+    }
 }
