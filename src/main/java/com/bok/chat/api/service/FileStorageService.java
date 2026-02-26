@@ -13,9 +13,10 @@ public class FileStorageService {
 
     private final S3Client s3Client;
     private final S3Config s3Config;
+    private final S3KeyGenerator s3KeyGenerator;
 
     public String upload(Long fileId, String originalFilename, String contentType, byte[] data) {
-        String key = buildKey(fileId, originalFilename);
+        String key = s3KeyGenerator.buildKey(fileId, originalFilename);
 
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(s3Config.getBucket())
@@ -26,21 +27,5 @@ public class FileStorageService {
         s3Client.putObject(request, RequestBody.fromBytes(data));
 
         return key;
-    }
-
-    String buildKey(Long fileId, String originalFilename) {
-        String extension = extractExtension(originalFilename);
-        return "files/" + fileId + "/original" + extension;
-    }
-
-    String extractExtension(String filename) {
-        if (filename == null) {
-            return "";
-        }
-        int dotIndex = filename.lastIndexOf('.');
-        if (dotIndex < 0) {
-            return "";
-        }
-        return filename.substring(dotIndex);
     }
 }

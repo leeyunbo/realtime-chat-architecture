@@ -50,18 +50,7 @@ public class FileUploadService {
         );
 
         fileAttachmentRepository.save(attachment);
-
-        try {
-            String storedPath = fileStorageService.upload(
-                    attachment.getId(),
-                    file.getOriginalFilename(),
-                    file.getContentType(),
-                    file.getBytes()
-            );
-            attachment.assignStoredPath(storedPath);
-        } catch (IOException e) {
-            throw new IllegalStateException("파일 읽기에 실패했습니다.", e);
-        }
+        attachment.assignStoredPath(uploadToStorage(attachment, file));
 
         eventPublisher.publishEvent(new FileUploadedEvent(attachment.getId()));
 
@@ -72,6 +61,18 @@ public class FileUploadService {
                 attachment.getFileSize(),
                 attachment.getThumbnailStatus()
         );
+    }
+
+    private String uploadToStorage(FileAttachment attachment, MultipartFile file) {
+        try {
+            return fileStorageService.upload(
+                    attachment.getId(),
+                    file.getOriginalFilename(),
+                    file.getContentType(),
+                    file.getBytes());
+        } catch (IOException e) {
+            throw new IllegalStateException("파일 읽기에 실패했습니다.", e);
+        }
     }
 
     private void validate(MultipartFile file) {
