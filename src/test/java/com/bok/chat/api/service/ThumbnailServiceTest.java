@@ -13,15 +13,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -45,6 +40,9 @@ class ThumbnailServiceTest {
     @Mock
     private S3KeyGenerator s3KeyGenerator;
 
+    @Mock
+    private ImageResizer imageResizer;
+
     @Nested
     @DisplayName("이벤트 핸들러")
     class HandleFileUploaded {
@@ -54,17 +52,19 @@ class ThumbnailServiceTest {
         void shouldGenerateThumbnailForPendingImage() throws IOException {
             // given
             FileAttachment file = createImageAttachment();
-            byte[] imageData = createTestImage(400, 300);
+            byte[] imageData = new byte[]{1, 2, 3};
+            byte[] thumbnailData = new byte[]{4, 5, 6};
 
             given(fileAttachmentRepository.findById(1L)).willReturn(Optional.of(file));
             given(fileStorageService.download("files/1/original.png")).willReturn(imageData);
+            given(imageResizer.resize(imageData, "image/png")).willReturn(thumbnailData);
             given(s3KeyGenerator.buildThumbnailKey(1L, "test.png")).willReturn("files/1/thumbnail.png");
 
             // when
             thumbnailService.handleFileUploaded(new FileUploadedEvent(1L));
 
             // then
-            then(fileStorageService).should().uploadWithKey(eq("files/1/thumbnail.png"), eq("image/png"), any(byte[].class));
+            then(fileStorageService).should().uploadWithKey(eq("files/1/thumbnail.png"), eq("image/png"), eq(thumbnailData));
             assertThat(file.getThumbnailStatus()).isEqualTo(ThumbnailStatus.COMPLETED);
             assertThat(file.getThumbnailPath()).isEqualTo("files/1/thumbnail.png");
         }
@@ -99,13 +99,14 @@ class ThumbnailServiceTest {
 
         @Test
         @DisplayName("리사이즈 실패 시 FAILED 상태로 변경한다")
-        void shouldMarkAsFailedWhenResizeFails() {
+        void shouldMarkAsFailedWhenResizeFails() throws IOException {
             // given
             FileAttachment file = createImageAttachment();
-            byte[] invalidData = "not an image".getBytes();
+            byte[] imageData = new byte[]{1, 2, 3};
 
             given(fileAttachmentRepository.findById(1L)).willReturn(Optional.of(file));
-            given(fileStorageService.download("files/1/original.png")).willReturn(invalidData);
+            given(fileStorageService.download("files/1/original.png")).willReturn(imageData);
+            given(imageResizer.resize(imageData, "image/png")).willThrow(new IOException("Failed to read image"));
 
             // when
             thumbnailService.handleFileUploaded(new FileUploadedEvent(1L));
@@ -116,70 +117,10 @@ class ThumbnailServiceTest {
         }
     }
 
-    @Nested
-    @DisplayName("이미지 리사이즈")
-    class Resize {
-
-        @Test
-        @DisplayName("큰 이미지를 200x200 이내로 리사이즈한다")
-        void shouldResizeLargeImage() throws IOException {
-            // given
-            byte[] imageData = createTestImage(400, 300);
-
-            // when
-            byte[] result = thumbnailService.resize(imageData, "image/png");
-
-            // then
-            BufferedImage thumbnail = ImageIO.read(new ByteArrayInputStream(result));
-            assertThat(thumbnail.getWidth()).isEqualTo(200);
-            assertThat(thumbnail.getHeight()).isEqualTo(150);
-        }
-
-        @Test
-        @DisplayName("세로로 긴 이미지는 높이를 기준으로 리사이즈한다")
-        void shouldResizeByHeightForTallImage() throws IOException {
-            // given
-            byte[] imageData = createTestImage(300, 600);
-
-            // when
-            byte[] result = thumbnailService.resize(imageData, "image/png");
-
-            // then
-            BufferedImage thumbnail = ImageIO.read(new ByteArrayInputStream(result));
-            assertThat(thumbnail.getWidth()).isEqualTo(100);
-            assertThat(thumbnail.getHeight()).isEqualTo(200);
-        }
-
-        @Test
-        @DisplayName("이미 작은 이미지는 원본을 그대로 반환한다")
-        void shouldReturnOriginalForSmallImage() throws IOException {
-            // given
-            byte[] imageData = createTestImage(100, 80);
-
-            // when
-            byte[] result = thumbnailService.resize(imageData, "image/png");
-
-            // then
-            assertThat(result).isEqualTo(imageData);
-        }
-
-        @Test
-        @DisplayName("유효하지 않은 이미지 데이터는 IOException을 던진다")
-        void shouldThrowForInvalidImageData() {
-            // given
-            byte[] invalidData = "not an image".getBytes();
-
-            // when & then
-            assertThatThrownBy(() -> thumbnailService.resize(invalidData, "image/png"))
-                    .isInstanceOf(IOException.class);
-        }
-    }
-
     private FileAttachment createImageAttachment() {
         User uploader = User.builder().username("tester").password("password").build();
         FileAttachment file = FileAttachment.create(uploader, "test.png", "image/png", 1024);
         file.assignStoredPath("files/1/original.png");
-        // Use reflection to set ID since it's auto-generated
         setId(file, 1L);
         return file;
     }
@@ -200,12 +141,5 @@ class ThumbnailServiceTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private byte[] createTestImage(int width, int height) throws IOException {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ImageIO.write(image, "png", out);
-        return out.toByteArray();
     }
 }
