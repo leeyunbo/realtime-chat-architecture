@@ -83,16 +83,17 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void handleSendMessage(Long senderId, WebSocketMessage message) {
-        SendResult result = chatMessageService.sendMessage(
-                senderId, message.getChatRoomId(), message.getContent());
+        SendResult result;
+        if (message.getFileId() != null) {
+            result = chatMessageService.sendFileMessage(
+                    senderId, message.getChatRoomId(), message.getFileId());
+        } else {
+            result = chatMessageService.sendMessage(
+                    senderId, message.getChatRoomId(), message.getContent());
+        }
 
-        WebSocketMessage outgoing = WebSocketMessage.messageReceived(
-                result.message().getChatRoom().getId(),
-                senderId,
-                result.sender().getUsername(),
-                result.message().getContent(),
-                result.message().getId(),
-                result.message().getUnreadCount());
+        WebSocketMessage outgoing = buildMessageReceived(result.message().getChatRoom().getId(),
+                result.message(), senderId, result.sender().getUsername());
 
         broadcastToMembers(result.members(), outgoing);
     }
@@ -176,12 +177,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         List<UndeliveredMessages> pending = chatMessageService.getUndeliveredMessages(userId);
         for (UndeliveredMessages group : pending) {
             for (Message msg : group.messages()) {
-                WebSocketMessage outgoing = WebSocketMessage.messageReceived(
-                        group.chatRoomId(),
+                WebSocketMessage outgoing = buildMessageReceived(group.chatRoomId(), msg,
                         msg.getSender() != null ? msg.getSender().getId() : null,
-                        msg.getSender() != null ? msg.getSender().getUsername() : null,
-                        msg.getContent(),
-                        msg.getId(), msg.getUnreadCount());
+                        msg.getSender() != null ? msg.getSender().getUsername() : null);
                 try {
                     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(outgoing)));
                 } catch (IOException e) {
@@ -190,6 +188,18 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 }
             }
         }
+    }
+
+    private WebSocketMessage buildMessageReceived(Long chatRoomId, Message msg,
+                                                   Long senderId, String senderName) {
+        if (msg.getFile() != null) {
+            var file = msg.getFile();
+            return WebSocketMessage.fileMessageReceived(chatRoomId, senderId, senderName,
+                    msg.getId(), msg.getUnreadCount(), file.getId(),
+                    file.getOriginalFilename(), file.getContentType(), file.getFileSize());
+        }
+        return WebSocketMessage.messageReceived(chatRoomId, senderId, senderName,
+                msg.getContent(), msg.getId(), msg.getUnreadCount());
     }
 
     private void broadcastToMembers(List<ChatRoomUser> members, WebSocketMessage message) {

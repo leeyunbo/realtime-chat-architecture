@@ -39,20 +39,30 @@ public class Message extends BaseEntity {
     @Column(nullable = false)
     private boolean deleted = false;
 
-    private Message(ChatRoom chatRoom, User sender, String content, int unreadCount, MessageType type) {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "file_id")
+    private FileAttachment file;
+
+    private Message(ChatRoom chatRoom, User sender, String content, int unreadCount,
+                    MessageType type, FileAttachment file) {
         this.chatRoom = chatRoom;
         this.sender = sender;
         this.content = content;
         this.unreadCount = unreadCount;
         this.type = type;
+        this.file = file;
     }
 
     public static Message create(ChatRoom chatRoom, User sender, String content, int memberCount) {
-        return new Message(chatRoom, sender, content, memberCount - 1, MessageType.CHAT);
+        return new Message(chatRoom, sender, content, memberCount - 1, MessageType.CHAT, null);
     }
 
     public static Message createSystem(ChatRoom chatRoom, String content, int memberCount) {
-        return new Message(chatRoom, null, content, memberCount > 0 ? memberCount - 1 : 0, MessageType.SYSTEM);
+        return new Message(chatRoom, null, content, memberCount > 0 ? memberCount - 1 : 0, MessageType.SYSTEM, null);
+    }
+
+    public static Message createFile(ChatRoom chatRoom, User sender, FileAttachment file, int memberCount) {
+        return new Message(chatRoom, sender, file.getOriginalFilename(), memberCount - 1, MessageType.FILE, file);
     }
 
     public void edit(Long requestUserId, String newContent) {
@@ -75,5 +85,5 @@ public class Message extends BaseEntity {
         }
     }
 
-    public enum MessageType { CHAT, SYSTEM }
+    public enum MessageType { CHAT, SYSTEM, FILE }
 }

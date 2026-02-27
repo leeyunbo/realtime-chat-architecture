@@ -11,6 +11,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("Message 엔티티")
 class MessageTest {
 
+    @Nested
+    @DisplayName("파일 메시지")
+    class FileMessage {
+
+        @Test
+        @DisplayName("createFile로 생성하면 type은 FILE이고 content에 파일명이 저장된다")
+        void createFile_shouldSetFileTypeAndFilenameAsContent() {
+            ChatRoom chatRoom = createChatRoom(1L, 3);
+            User sender = createUser(1L, "sender");
+            FileAttachment file = createFileAttachment(1L, sender, "photo.jpg", "image/jpeg", 1024);
+
+            Message message = Message.createFile(chatRoom, sender, file, 3);
+
+            assertThat(message.getType()).isEqualTo(Message.MessageType.FILE);
+            assertThat(message.getContent()).isEqualTo("photo.jpg");
+            assertThat(message.getFile()).isEqualTo(file);
+            assertThat(message.getUnreadCount()).isEqualTo(2);
+        }
+    }
+
+
     @Test
     @DisplayName("3명 채팅방에서 생성하면 unreadCount는 2이다")
     void create_shouldSetUnreadCountToMemberCountMinusOne() {

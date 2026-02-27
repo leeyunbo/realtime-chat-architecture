@@ -6,10 +6,12 @@ import com.bok.chat.api.dto.EditResult;
 import com.bok.chat.api.dto.SendResult;
 import com.bok.chat.entity.ChatRoom;
 import com.bok.chat.entity.ChatRoomUser;
+import com.bok.chat.entity.FileAttachment;
 import com.bok.chat.entity.Message;
 import com.bok.chat.entity.User;
 import com.bok.chat.repository.ChatRoomRepository;
 import com.bok.chat.repository.ChatRoomUserRepository;
+import com.bok.chat.repository.FileAttachmentRepository;
 import com.bok.chat.repository.MessageRepository;
 import com.bok.chat.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +50,9 @@ class ChatMessageServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private FileAttachmentRepository fileAttachmentRepository;
 
     @Nested
     @DisplayName("밀린 메시지 조회")
@@ -318,6 +323,69 @@ class ChatMessageServiceTest {
             assertThatThrownBy(() -> chatMessageService.deleteMessage(99L, 1L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("본인의 메시지만");
+        }
+    }
+
+    @Nested
+    @DisplayName("파일 메시지 전송")
+    class SendFileMessage {
+
+        @Test
+        @DisplayName("성공 시 FILE 타입 메시지와 발신자, 멤버 목록을 반환한다")
+        void sendFileMessage_shouldReturnSendResult() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User sender = createUser(1L, "sender");
+            FileAttachment file = createFileAttachment(10L, sender, "photo.jpg", "image/jpeg", 2048);
+            ChatRoomUser member1 = createChatRoomUser(1L, chatRoom, sender);
+            ChatRoomUser member2 = createChatRoomUser(2L, chatRoom, createUser(2L, "receiver"));
+            Message savedMessage = Message.createFile(chatRoom, sender, file, 2);
+            org.springframework.test.util.ReflectionTestUtils.setField(savedMessage, "id", 1L);
+
+            given(chatRoomRepository.findById(1L)).willReturn(Optional.of(chatRoom));
+            given(userRepository.findById(1L)).willReturn(Optional.of(sender));
+            given(fileAttachmentRepository.findById(10L)).willReturn(Optional.of(file));
+            given(chatRoomUserRepository.findByChatRoomIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
+                    .willReturn(List.of(member1, member2));
+            given(messageRepository.save(any(Message.class))).willReturn(savedMessage);
+
+            SendResult result = chatMessageService.sendFileMessage(1L, 1L, 10L);
+
+            assertThat(result.message().getType()).isEqualTo(Message.MessageType.FILE);
+            assertThat(result.message().getFile()).isEqualTo(file);
+            assertThat(result.sender().getUsername()).isEqualTo("sender");
+            assertThat(result.members()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 파일이면 예외가 발생한다")
+        void sendFileMessage_fileNotFound_shouldThrow() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User sender = createUser(1L, "sender");
+
+            given(chatRoomRepository.findById(1L)).willReturn(Optional.of(chatRoom));
+            given(userRepository.findById(1L)).willReturn(Optional.of(sender));
+            given(fileAttachmentRepository.findById(99L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> chatMessageService.sendFileMessage(1L, 1L, 99L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("파일이 존재하지 않습니다");
+        }
+
+        @Test
+        @DisplayName("본인이 업로드하지 않은 파일이면 예외가 발생한다")
+        void sendFileMessage_notUploader_shouldThrow() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            User sender = createUser(1L, "sender");
+            User otherUser = createUser(2L, "other");
+            FileAttachment file = createFileAttachment(10L, otherUser, "photo.jpg", "image/jpeg", 2048);
+
+            given(chatRoomRepository.findById(1L)).willReturn(Optional.of(chatRoom));
+            given(userRepository.findById(1L)).willReturn(Optional.of(sender));
+            given(fileAttachmentRepository.findById(10L)).willReturn(Optional.of(file));
+
+            assertThatThrownBy(() -> chatMessageService.sendFileMessage(1L, 1L, 10L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("본인이 업로드한 파일만");
         }
     }
 }

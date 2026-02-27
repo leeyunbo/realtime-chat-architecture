@@ -6,10 +6,12 @@ import com.bok.chat.api.dto.EditResult;
 import com.bok.chat.api.dto.SendResult;
 import com.bok.chat.api.dto.UndeliveredMessages;
 import com.bok.chat.entity.ChatRoomUser;
+import com.bok.chat.entity.FileAttachment;
 import com.bok.chat.entity.Message;
 import com.bok.chat.entity.User;
 import com.bok.chat.repository.ChatRoomRepository;
 import com.bok.chat.repository.ChatRoomUserRepository;
+import com.bok.chat.repository.FileAttachmentRepository;
 import com.bok.chat.repository.MessageRepository;
 import com.bok.chat.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ public class ChatMessageService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomUserRepository chatRoomUserRepository;
     private final UserRepository userRepository;
+    private final FileAttachmentRepository fileAttachmentRepository;
 
     @Transactional(readOnly = true)
     public List<UndeliveredMessages> getUndeliveredMessages(Long userId) {
@@ -119,6 +122,30 @@ public class ChatMessageService {
                 .findByChatRoomIdAndStatus(message.getChatRoom().getId(), ChatRoomUser.Status.ACTIVE);
 
         return new DeleteResult(message, members);
+    }
+
+    @Transactional
+    public SendResult sendFileMessage(Long senderId, Long chatRoomId, Long fileId) {
+        var chatRoom = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
+
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
+
+        FileAttachment file = fileAttachmentRepository.findById(fileId)
+                .orElseThrow(() -> new IllegalArgumentException("파일이 존재하지 않습니다."));
+
+        if (!file.getUploader().getId().equals(senderId)) {
+            throw new IllegalArgumentException("본인이 업로드한 파일만 전송할 수 있습니다.");
+        }
+
+        List<ChatRoomUser> members = chatRoomUserRepository
+                .findByChatRoomIdAndStatus(chatRoom.getId(), ChatRoomUser.Status.ACTIVE);
+
+        Message saved = messageRepository.save(
+                Message.createFile(chatRoom, sender, file, members.size()));
+
+        return new SendResult(saved, sender, members);
     }
 
     public Message createSystemMessage(Long chatRoomId, String content) {

@@ -22,6 +22,10 @@ public class WebSocketMessage {
     private List<Long> userIds;
     private Boolean edited;
     private Boolean deleted;
+    private Long fileId;
+    private String originalFilename;
+    private String contentType;
+    private Long fileSize;
 
     private WebSocketMessage(MessageType type, Long chatRoomId, Long senderId,
                              String senderName, String content, Long messageId,
@@ -77,6 +81,20 @@ public class WebSocketMessage {
         WebSocketMessage msg = new WebSocketMessage(MessageType.MESSAGE_UPDATED, chatRoomId,
                 senderId, null, null, messageId, null, null);
         msg.deleted = true;
+        return msg;
+    }
+
+    public static WebSocketMessage fileMessageReceived(Long chatRoomId, Long senderId,
+                                                        String senderName, Long messageId,
+                                                        int unreadCount, Long fileId,
+                                                        String originalFilename, String contentType,
+                                                        long fileSize) {
+        WebSocketMessage msg = new WebSocketMessage(MessageType.MESSAGE_RECEIVED, chatRoomId,
+                senderId, senderName, originalFilename, messageId, unreadCount, null);
+        msg.fileId = fileId;
+        msg.originalFilename = originalFilename;
+        msg.contentType = contentType;
+        msg.fileSize = fileSize;
         return msg;
     }
 }

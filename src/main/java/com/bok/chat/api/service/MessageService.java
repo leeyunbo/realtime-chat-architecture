@@ -33,6 +33,7 @@ public class MessageService {
     }
 
     private MessageResponse toResponse(Message m) {
+        var file = m.getFile();
         return new MessageResponse(
                 m.getId(),
                 m.getSender() != null ? m.getSender().getId() : null,
@@ -41,7 +42,11 @@ public class MessageService {
                 m.getUnreadCount(),
                 m.isEdited(),
                 m.isDeleted(),
-                m.getCreatedAt()
+                m.getCreatedAt(),
+                file != null ? file.getId() : null,
+                file != null ? file.getOriginalFilename() : null,
+                file != null ? file.getContentType() : null,
+                file != null ? file.getFileSize() : null
         );
     }
 }

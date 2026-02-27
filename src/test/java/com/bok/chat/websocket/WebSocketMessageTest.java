@@ -56,4 +56,22 @@ class WebSocketMessageTest {
         assertThat(msg.getSenderId()).isEqualTo(2L);
         assertThat(msg.getMessageId()).isEqualTo(10L);
     }
+
+    @Test
+    @DisplayName("fileMessageReceived 팩토리로 파일 메시지를 생성한다")
+    void fileMessageReceived() {
+        WebSocketMessage msg = WebSocketMessage.fileMessageReceived(
+                1L, 2L, "alice", 10L, 1, 5L, "photo.jpg", "image/jpeg", 2048);
+
+        assertThat(msg.getType()).isEqualTo(MessageType.MESSAGE_RECEIVED);
+        assertThat(msg.getChatRoomId()).isEqualTo(1L);
+        assertThat(msg.getSenderId()).isEqualTo(2L);
+        assertThat(msg.getSenderName()).isEqualTo("alice");
+        assertThat(msg.getMessageId()).isEqualTo(10L);
+        assertThat(msg.getUnreadCount()).isEqualTo(1);
+        assertThat(msg.getFileId()).isEqualTo(5L);
+        assertThat(msg.getOriginalFilename()).isEqualTo("photo.jpg");
+        assertThat(msg.getContentType()).isEqualTo("image/jpeg");
+        assertThat(msg.getFileSize()).isEqualTo(2048L);
+    }
 }

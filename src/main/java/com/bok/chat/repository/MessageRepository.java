@@ -15,7 +15,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     List<Message> findByChatRoomIdOrderByCreatedAtDesc(Long chatRoomId, Pageable pageable);
 
-    @Query("SELECT m FROM Message m LEFT JOIN FETCH m.sender " +
+    @Query("SELECT m FROM Message m LEFT JOIN FETCH m.sender LEFT JOIN FETCH m.file " +
             "WHERE m.chatRoom.id = :chatRoomId AND m.createdAt >= :joinedAt " +
             "ORDER BY m.createdAt DESC")
     List<Message> findByChatRoomIdAndCreatedAtAfter(@Param("chatRoomId") Long chatRoomId,
@@ -35,7 +35,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     long countUnreadMessages(@Param("chatRoomId") Long chatRoomId,
                              @Param("lastReadMessageId") Long lastReadMessageId);
 
-    @Query("SELECT m FROM Message m LEFT JOIN FETCH m.sender " +
+    @Query("SELECT m FROM Message m LEFT JOIN FETCH m.sender LEFT JOIN FETCH m.file " +
             "WHERE m.chatRoom.id = :chatRoomId AND m.id > :lastReadMessageId ORDER BY m.id ASC")
     List<Message> findUnreadMessages(@Param("chatRoomId") Long chatRoomId,
                                      @Param("lastReadMessageId") Long lastReadMessageId);
