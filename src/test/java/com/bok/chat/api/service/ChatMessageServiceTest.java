@@ -338,7 +338,7 @@ class ChatMessageServiceTest {
             FileAttachment file = createFileAttachment(10L, sender, "photo.jpg", "image/jpeg", 2048);
             ChatRoomUser member1 = createChatRoomUser(1L, chatRoom, sender);
             ChatRoomUser member2 = createChatRoomUser(2L, chatRoom, createUser(2L, "receiver"));
-            Message savedMessage = Message.createFile(chatRoom, sender, file, 2);
+            Message savedMessage = Message.createFileMessage(chatRoom, sender, file, 2);
             org.springframework.test.util.ReflectionTestUtils.setField(savedMessage, "id", 1L);
 
             given(chatRoomRepository.findById(1L)).willReturn(Optional.of(chatRoom));

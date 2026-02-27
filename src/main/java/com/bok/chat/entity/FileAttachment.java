@@ -61,6 +61,10 @@ public class FileAttachment extends BaseEntity {
         this.thumbnailStatus = ThumbnailStatus.FAILED;
     }
 
+    public boolean isUploadedBy(Long userId) {
+        return this.uploader.getId().equals(userId);
+    }
+
     private static boolean isImage(String contentType) {
         return contentType != null && contentType.startsWith("image/");
     }

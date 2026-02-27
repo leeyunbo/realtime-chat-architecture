@@ -57,11 +57,11 @@ public class Message extends BaseEntity {
         return new Message(chatRoom, sender, content, memberCount - 1, MessageType.CHAT, null);
     }
 
-    public static Message createSystem(ChatRoom chatRoom, String content, int memberCount) {
+    public static Message createSystemMessage(ChatRoom chatRoom, String content, int memberCount) {
         return new Message(chatRoom, null, content, memberCount > 0 ? memberCount - 1 : 0, MessageType.SYSTEM, null);
     }
 
-    public static Message createFile(ChatRoom chatRoom, User sender, FileAttachment file, int memberCount) {
+    public static Message createFileMessage(ChatRoom chatRoom, User sender, FileAttachment file, int memberCount) {
         return new Message(chatRoom, sender, file.getOriginalFilename(), memberCount - 1, MessageType.FILE, file);
     }
 

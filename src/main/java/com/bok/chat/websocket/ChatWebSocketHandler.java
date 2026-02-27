@@ -84,7 +84,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private void handleSendMessage(Long senderId, WebSocketMessage message) {
         SendResult result;
-        if (message.getFileId() != null) {
+        if (message.isFileMessage()) {
             result = chatMessageService.sendFileMessage(
                     senderId, message.getChatRoomId(), message.getFileId());
         } else {

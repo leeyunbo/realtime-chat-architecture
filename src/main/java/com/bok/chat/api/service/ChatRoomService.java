@@ -109,7 +109,7 @@ public class ChatRoomService {
         if (!invitedNames.isEmpty()) {
             String names = String.join(", ", invitedNames);
             systemMessage = messageRepository.save(
-                    Message.createSystem(chatRoom, names + "님이 입장하셨습니다.", allMembers.size()));
+                    Message.createSystemMessage(chatRoom, names + "님이 입장하셨습니다.", allMembers.size()));
         }
 
         return new InviteResult(invitedUserIds, allMembers, systemMessage);
@@ -131,7 +131,7 @@ public class ChatRoomService {
         if (!remainingMembers.isEmpty()) {
             ChatRoom chatRoom = membership.getChatRoom();
             systemMessage = messageRepository.save(
-                    Message.createSystem(chatRoom, username + "님이 퇴장하셨습니다.", remainingMembers.size()));
+                    Message.createSystemMessage(chatRoom, username + "님이 퇴장하셨습니다.", remainingMembers.size()));
         }
 
         return new LeaveResult(systemMessage, remainingMembers);

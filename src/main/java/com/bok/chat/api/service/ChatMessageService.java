@@ -135,7 +135,7 @@ public class ChatMessageService {
         FileAttachment file = fileAttachmentRepository.findById(fileId)
                 .orElseThrow(() -> new IllegalArgumentException("파일이 존재하지 않습니다."));
 
-        if (!file.getUploader().getId().equals(senderId)) {
+        if (!file.isUploadedBy(senderId)) {
             throw new IllegalArgumentException("본인이 업로드한 파일만 전송할 수 있습니다.");
         }
 
@@ -143,7 +143,7 @@ public class ChatMessageService {
                 .findByChatRoomIdAndStatus(chatRoom.getId(), ChatRoomUser.Status.ACTIVE);
 
         Message saved = messageRepository.save(
-                Message.createFile(chatRoom, sender, file, members.size()));
+                Message.createFileMessage(chatRoom, sender, file, members.size()));
 
         return new SendResult(saved, sender, members);
     }
@@ -154,6 +154,6 @@ public class ChatMessageService {
 
         int activeCount = chatRoomUserRepository.countByChatRoomIdAndStatus(chatRoomId, ChatRoomUser.Status.ACTIVE);
 
-        return messageRepository.save(Message.createSystem(chatRoom, content, activeCount));
+        return messageRepository.save(Message.createSystemMessage(chatRoom, content, activeCount));
     }
 }

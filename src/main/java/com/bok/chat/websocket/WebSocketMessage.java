@@ -1,5 +1,6 @@
 package com.bok.chat.websocket;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -82,6 +83,11 @@ public class WebSocketMessage {
                 senderId, null, null, messageId, null, null);
         msg.deleted = true;
         return msg;
+    }
+
+    @JsonIgnore
+    public boolean isFileMessage() {
+        return fileId != null;
     }
 
     public static WebSocketMessage fileMessageReceived(Long chatRoomId, Long senderId,

@@ -16,13 +16,13 @@ class MessageTest {
     class FileMessage {
 
         @Test
-        @DisplayName("createFile로 생성하면 type은 FILE이고 content에 파일명이 저장된다")
-        void createFile_shouldSetFileTypeAndFilenameAsContent() {
+        @DisplayName("createFileMessage로 생성하면 type은 FILE이고 content에 파일명이 저장된다")
+        void createFileMessage_shouldSetFileTypeAndFilenameAsContent() {
             ChatRoom chatRoom = createChatRoom(1L, 3);
             User sender = createUser(1L, "sender");
             FileAttachment file = createFileAttachment(1L, sender, "photo.jpg", "image/jpeg", 1024);
 
-            Message message = Message.createFile(chatRoom, sender, file, 3);
+            Message message = Message.createFileMessage(chatRoom, sender, file, 3);
 
             assertThat(message.getType()).isEqualTo(Message.MessageType.FILE);
             assertThat(message.getContent()).isEqualTo("photo.jpg");
@@ -63,7 +63,7 @@ class MessageTest {
         void createSystem_shouldHaveNullSenderAndSystemType() {
             ChatRoom chatRoom = createChatRoom(1L, 3);
 
-            Message message = Message.createSystem(chatRoom, "알림", 3);
+            Message message = Message.createSystemMessage(chatRoom, "알림", 3);
 
             assertThat(message.getSender()).isNull();
             assertThat(message.getType()).isEqualTo(Message.MessageType.SYSTEM);
@@ -76,7 +76,7 @@ class MessageTest {
         void createSystem_zeroMembers_shouldHaveZeroUnreadCount() {
             ChatRoom chatRoom = createChatRoom(1L, 2);
 
-            Message message = Message.createSystem(chatRoom, "알림", 0);
+            Message message = Message.createSystemMessage(chatRoom, "알림", 0);
 
             assertThat(message.getUnreadCount()).isEqualTo(0);
         }
