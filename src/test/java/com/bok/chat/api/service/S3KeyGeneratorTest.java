@@ -41,6 +41,27 @@ class S3KeyGeneratorTest {
     }
 
     @Nested
+    @DisplayName("썸네일 키 생성")
+    class BuildThumbnailKey {
+
+        @Test
+        @DisplayName("파일 ID와 확장자로 썸네일 키를 생성한다")
+        void buildThumbnailKey_shouldGenerateCorrectKey() {
+            String key = s3KeyGenerator.buildThumbnailKey(42L, "photo.jpg");
+
+            assertThat(key).isEqualTo("files/42/thumbnail.jpg");
+        }
+
+        @Test
+        @DisplayName("확장자가 없는 파일은 확장자 없이 썸네일 키를 생성한다")
+        void buildThumbnailKey_noExtension_shouldGenerateKeyWithoutExtension() {
+            String key = s3KeyGenerator.buildThumbnailKey(1L, "README");
+
+            assertThat(key).isEqualTo("files/1/thumbnail");
+        }
+    }
+
+    @Nested
     @DisplayName("확장자 추출")
     class ExtractExtension {
 
