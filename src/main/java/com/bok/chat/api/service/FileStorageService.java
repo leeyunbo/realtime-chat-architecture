@@ -9,12 +9,19 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
 public class FileStorageService {
 
+    private static final Duration PRESIGNED_URL_TTL = Duration.ofMinutes(5);
+
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
     private final S3Config s3Config;
     private final S3KeyGenerator s3KeyGenerator;
 
@@ -36,6 +43,18 @@ public class FileStorageService {
                 .build();
 
         s3Client.putObject(request, RequestBody.fromBytes(data));
+    }
+
+    public String generatePresignedUrl(String key) {
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(PRESIGNED_URL_TTL)
+                .getObjectRequest(GetObjectRequest.builder()
+                        .bucket(s3Config.getBucket())
+                        .key(key)
+                        .build())
+                .build();
+
+        return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
     public byte[] download(String key) {
