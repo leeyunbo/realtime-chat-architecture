@@ -335,7 +335,7 @@ class ChatMessageServiceTest {
         void sendFileMessage_shouldReturnSendResult() {
             ChatRoom chatRoom = createChatRoom(1L, 2);
             User sender = createUser(1L, "sender");
-            FileAttachment file = createFileAttachment(10L, sender, "photo.jpg", "image/jpeg", 2048);
+            FileAttachment file = createFileAttachment(10L, chatRoom, sender, "photo.jpg", "image/jpeg", 2048);
             ChatRoomUser member1 = createChatRoomUser(1L, chatRoom, sender);
             ChatRoomUser member2 = createChatRoomUser(2L, chatRoom, createUser(2L, "receiver"));
             Message savedMessage = Message.createFileMessage(chatRoom, sender, file, 2);
@@ -377,7 +377,7 @@ class ChatMessageServiceTest {
             ChatRoom chatRoom = createChatRoom(1L, 2);
             User sender = createUser(1L, "sender");
             User otherUser = createUser(2L, "other");
-            FileAttachment file = createFileAttachment(10L, otherUser, "photo.jpg", "image/jpeg", 2048);
+            FileAttachment file = createFileAttachment(10L, chatRoom, otherUser, "photo.jpg", "image/jpeg", 2048);
 
             given(chatRoomRepository.findById(1L)).willReturn(Optional.of(chatRoom));
             given(userRepository.findById(1L)).willReturn(Optional.of(sender));
@@ -386,6 +386,23 @@ class ChatMessageServiceTest {
             assertThatThrownBy(() -> chatMessageService.sendFileMessage(1L, 1L, 10L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("본인이 업로드한 파일만");
+        }
+
+        @Test
+        @DisplayName("다른 채팅방에 업로드된 파일이면 예외가 발생한다")
+        void sendFileMessage_wrongChatRoom_shouldThrow() {
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            ChatRoom otherRoom = createChatRoom(2L, 2);
+            User sender = createUser(1L, "sender");
+            FileAttachment file = createFileAttachment(10L, otherRoom, sender, "photo.jpg", "image/jpeg", 2048);
+
+            given(chatRoomRepository.findById(1L)).willReturn(Optional.of(chatRoom));
+            given(userRepository.findById(1L)).willReturn(Optional.of(sender));
+            given(fileAttachmentRepository.findById(10L)).willReturn(Optional.of(file));
+
+            assertThatThrownBy(() -> chatMessageService.sendFileMessage(1L, 1L, 10L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("해당 채팅방에 업로드된 파일이 아닙니다");
         }
     }
 }

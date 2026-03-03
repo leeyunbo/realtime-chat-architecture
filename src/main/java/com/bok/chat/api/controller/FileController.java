@@ -26,9 +26,10 @@ public class FileController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<FileUploadResponse> upload(
             Authentication authentication,
+            @RequestParam("chatRoomId") Long chatRoomId,
             @RequestParam("file") MultipartFile file) {
         Long userId = (Long) authentication.getPrincipal();
-        return ResponseEntity.status(HttpStatus.CREATED).body(fileUploadService.upload(userId, file));
+        return ResponseEntity.status(HttpStatus.CREATED).body(fileUploadService.upload(userId, chatRoomId, file));
     }
 
     @GetMapping("/{fileId}/download-url")

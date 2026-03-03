@@ -20,7 +20,7 @@ class MessageTest {
         void createFileMessage_shouldSetFileTypeAndFilenameAsContent() {
             ChatRoom chatRoom = createChatRoom(1L, 3);
             User sender = createUser(1L, "sender");
-            FileAttachment file = createFileAttachment(1L, sender, "photo.jpg", "image/jpeg", 1024);
+            FileAttachment file = createFileAttachment(1L, chatRoom, sender, "photo.jpg", "image/jpeg", 1024);
 
             Message message = Message.createFileMessage(chatRoom, sender, file, 3);
 

@@ -40,9 +40,4 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findUnreadMessages(@Param("chatRoomId") Long chatRoomId,
                                      @Param("lastReadMessageId") Long lastReadMessageId);
 
-    @Query("SELECT m.chatRoom.id FROM Message m WHERE m.file.id = :fileId")
-    Optional<Long> findChatRoomIdByFileId(@Param("fileId") Long fileId);
-
-    @Query("SELECT m.file.id, m.chatRoom.id FROM Message m WHERE m.file.id IN :fileIds")
-    List<Object[]> findChatRoomIdsByFileIds(@Param("fileIds") List<Long> fileIds);
 }

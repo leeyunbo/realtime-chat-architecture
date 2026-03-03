@@ -8,7 +8,6 @@ import com.bok.chat.entity.FileAttachment;
 import com.bok.chat.entity.User;
 import com.bok.chat.repository.ChatRoomUserRepository;
 import com.bok.chat.repository.FileAttachmentRepository;
-import com.bok.chat.repository.MessageRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,9 +35,6 @@ class FileDownloadServiceTest {
     private FileAttachmentRepository fileAttachmentRepository;
 
     @Mock
-    private MessageRepository messageRepository;
-
-    @Mock
     private ChatRoomUserRepository chatRoomUserRepository;
 
     @Mock
@@ -55,12 +51,11 @@ class FileDownloadServiceTest {
         @DisplayName("성공 시 presigned URL과 파일 메타데이터를 반환한다")
         void getDownloadUrl_shouldReturnPresignedUrl() {
             User user = createUser(1L, "user1");
-            FileAttachment file = createFileAttachment(10L, user, "photo.jpg", "image/jpeg", 2048);
             ChatRoom chatRoom = createChatRoom(1L, 2);
+            FileAttachment file = createFileAttachment(10L, chatRoom, user, "photo.jpg", "image/jpeg", 2048);
             ChatRoomUser member = createChatRoomUser(1L, chatRoom, user);
 
             given(fileAttachmentRepository.findById(10L)).willReturn(Optional.of(file));
-            given(messageRepository.findChatRoomIdByFileId(10L)).willReturn(Optional.of(1L));
             given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L)).willReturn(Optional.of(member));
             given(s3KeyGenerator.buildKey(10L, "photo.jpg")).willReturn("files/10/original.jpg");
             given(fileStorageService.generatePresignedUrl("files/10/original.jpg")).willReturn("https://s3/presigned-url");
@@ -87,29 +82,15 @@ class FileDownloadServiceTest {
         @DisplayName("채팅방 멤버가 아니면 예외가 발생한다")
         void getDownloadUrl_notMember_shouldThrow() {
             User uploader = createUser(2L, "uploader");
-            FileAttachment file = createFileAttachment(10L, uploader, "photo.jpg", "image/jpeg", 2048);
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            FileAttachment file = createFileAttachment(10L, chatRoom, uploader, "photo.jpg", "image/jpeg", 2048);
 
             given(fileAttachmentRepository.findById(10L)).willReturn(Optional.of(file));
-            given(messageRepository.findChatRoomIdByFileId(10L)).willReturn(Optional.of(1L));
             given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> fileDownloadService.getDownloadUrl(1L, 10L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("접근 권한이 없습니다");
-        }
-
-        @Test
-        @DisplayName("메시지에 연결되지 않은 파일이면 예외가 발생한다")
-        void getDownloadUrl_noMessage_shouldThrow() {
-            User user = createUser(1L, "user1");
-            FileAttachment file = createFileAttachment(10L, user, "photo.jpg", "image/jpeg", 2048);
-
-            given(fileAttachmentRepository.findById(10L)).willReturn(Optional.of(file));
-            given(messageRepository.findChatRoomIdByFileId(10L)).willReturn(Optional.empty());
-
-            assertThatThrownBy(() -> fileDownloadService.getDownloadUrl(1L, 10L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("메시지에 연결되지 않은 파일");
         }
     }
 
@@ -121,13 +102,12 @@ class FileDownloadServiceTest {
         @DisplayName("성공 시 썸네일 presigned URL을 반환한다")
         void getThumbnailUrl_shouldReturnPresignedUrl() {
             User user = createUser(1L, "user1");
-            FileAttachment file = createFileAttachment(10L, user, "photo.jpg", "image/jpeg", 2048);
-            file.completeThumbnail("files/10/thumbnail.jpg");
             ChatRoom chatRoom = createChatRoom(1L, 2);
+            FileAttachment file = createFileAttachment(10L, chatRoom, user, "photo.jpg", "image/jpeg", 2048);
+            file.completeThumbnail("files/10/thumbnail.jpg");
             ChatRoomUser member = createChatRoomUser(1L, chatRoom, user);
 
             given(fileAttachmentRepository.findById(10L)).willReturn(Optional.of(file));
-            given(messageRepository.findChatRoomIdByFileId(10L)).willReturn(Optional.of(1L));
             given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L)).willReturn(Optional.of(member));
             given(s3KeyGenerator.buildThumbnailKey(10L, "photo.jpg")).willReturn("files/10/thumbnail.jpg");
             given(fileStorageService.generatePresignedUrl("files/10/thumbnail.jpg")).willReturn("https://s3/thumb-url");
@@ -141,12 +121,11 @@ class FileDownloadServiceTest {
         @DisplayName("썸네일이 없으면 예외가 발생한다")
         void getThumbnailUrl_noThumbnail_shouldThrow() {
             User user = createUser(1L, "user1");
-            FileAttachment file = createFileAttachment(10L, user, "report.pdf", "application/pdf", 5000);
             ChatRoom chatRoom = createChatRoom(1L, 2);
+            FileAttachment file = createFileAttachment(10L, chatRoom, user, "report.pdf", "application/pdf", 5000);
             ChatRoomUser member = createChatRoomUser(1L, chatRoom, user);
 
             given(fileAttachmentRepository.findById(10L)).willReturn(Optional.of(file));
-            given(messageRepository.findChatRoomIdByFileId(10L)).willReturn(Optional.of(1L));
             given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L)).willReturn(Optional.of(member));
 
             assertThatThrownBy(() -> fileDownloadService.getThumbnailUrl(1L, 10L))
@@ -163,16 +142,13 @@ class FileDownloadServiceTest {
         @DisplayName("성공 시 원본 + 썸네일 URL 목록을 반환한다")
         void getBatchDownloadUrls_shouldReturnUrls() {
             User user = createUser(1L, "user1");
-            FileAttachment imageFile = createFileAttachment(10L, user, "photo.jpg", "image/jpeg", 2048);
-            imageFile.completeThumbnail("files/10/thumbnail.jpg");
-            FileAttachment pdfFile = createFileAttachment(11L, user, "report.pdf", "application/pdf", 5000);
-
             ChatRoom chatRoom = createChatRoom(1L, 2);
+            FileAttachment imageFile = createFileAttachment(10L, chatRoom, user, "photo.jpg", "image/jpeg", 2048);
+            imageFile.completeThumbnail("files/10/thumbnail.jpg");
+            FileAttachment pdfFile = createFileAttachment(11L, chatRoom, user, "report.pdf", "application/pdf", 5000);
             ChatRoomUser member = createChatRoomUser(1L, chatRoom, user);
 
             given(fileAttachmentRepository.findAllById(List.of(10L, 11L))).willReturn(List.of(imageFile, pdfFile));
-            given(messageRepository.findChatRoomIdsByFileIds(List.of(10L, 11L)))
-                    .willReturn(List.of(new Object[]{10L, 1L}, new Object[]{11L, 1L}));
             given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L)).willReturn(Optional.of(member));
 
             given(s3KeyGenerator.buildKey(10L, "photo.jpg")).willReturn("files/10/original.jpg");
@@ -201,7 +177,8 @@ class FileDownloadServiceTest {
         @DisplayName("존재하지 않는 파일이 포함되면 전체 거부한다")
         void getBatchDownloadUrls_fileNotFound_shouldThrow() {
             User user = createUser(1L, "user1");
-            FileAttachment file = createFileAttachment(10L, user, "photo.jpg", "image/jpeg", 2048);
+            ChatRoom chatRoom = createChatRoom(1L, 2);
+            FileAttachment file = createFileAttachment(10L, chatRoom, user, "photo.jpg", "image/jpeg", 2048);
 
             given(fileAttachmentRepository.findAllById(List.of(10L, 99L))).willReturn(List.of(file));
 
@@ -214,14 +191,14 @@ class FileDownloadServiceTest {
         @DisplayName("접근 권한이 없는 파일이 포함되면 전체 거부한다")
         void getBatchDownloadUrls_noAccess_shouldThrow() {
             User user = createUser(1L, "user1");
-            FileAttachment file1 = createFileAttachment(10L, user, "photo.jpg", "image/jpeg", 2048);
-            FileAttachment file2 = createFileAttachment(11L, user, "doc.pdf", "application/pdf", 3000);
+            ChatRoom chatRoom1 = createChatRoom(1L, 2);
+            ChatRoom chatRoom2 = createChatRoom(2L, 2);
+            FileAttachment file1 = createFileAttachment(10L, chatRoom1, user, "photo.jpg", "image/jpeg", 2048);
+            FileAttachment file2 = createFileAttachment(11L, chatRoom2, user, "doc.pdf", "application/pdf", 3000);
 
             given(fileAttachmentRepository.findAllById(List.of(10L, 11L))).willReturn(List.of(file1, file2));
-            given(messageRepository.findChatRoomIdsByFileIds(List.of(10L, 11L)))
-                    .willReturn(List.of(new Object[]{10L, 1L}, new Object[]{11L, 2L}));
             given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
-                    .willReturn(Optional.of(createChatRoomUser(1L, createChatRoom(1L, 2), user)));
+                    .willReturn(Optional.of(createChatRoomUser(1L, chatRoom1, user)));
             given(chatRoomUserRepository.findByChatRoomIdAndUserId(2L, 1L))
                     .willReturn(Optional.empty());
 

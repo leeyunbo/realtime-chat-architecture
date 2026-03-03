@@ -215,5 +215,73 @@
         "createdAt": "2026-02-27T10:35:00.000Z"
       }
     ]
+  },
+  {
+    "id": 1772423348427,
+    "file": "src/main/java/com/bok/chat/api/service/FileDownloadService.java",
+    "line": 60,
+    "content": "얘는 왜 Return이 Object 형이야?",
+    "context": "        List<Object[]> chatRoomMappings = messageRepository.findChatRoomIdsByFileIds(fileIds);",
+    "commitHash": "aef6f458667ed9a85e060c828d048dc8be703625",
+    "createdAt": "2026-03-02T03:49:08.427Z",
+    "replies": [
+      {
+        "author": "claude",
+        "content": "Spring Data JPA의 `@Query`에서 `SELECT m.file.id, m.chatRoom.id`처럼 여러 컬럼을 조회하면, 엔티티가 아닌 개별 값들의 배열로 반환되기 때문에 `Object[]`이 됩니다. JPA 표준 스펙이 그렇습니다.\n\n하지만 지적처럼 `Object[]`은 타입 안전하지 않고 의미도 불명확합니다. JPQL의 `new` 생성자 표현식으로 전용 Projection 레코드를 사용하면 해결됩니다:\n\n```java\nrecord FileRoomMapping(Long fileId, Long chatRoomId) {}\n\n@Query(\"SELECT new com.bok.chat.repository.FileRoomMapping(m.file.id, m.chatRoom.id) FROM Message m WHERE m.file.id IN :fileIds\")\nList<FileRoomMapping> findChatRoomIdsByFileIds(...);\n```\n\n리팩터링에서 반영하겠습니다.",
+        "createdAt": "2026-03-02T04:40:00.000Z"
+      },
+      {
+        "author": "user",
+        "content": "이해가 안되는게 ChatRoom 조회인데 왜 MessageRepository에 둬서 이렇게 복잡해지는건데? 궁금",
+        "createdAt": "2026-03-02T04:36:36.438Z"
+      },
+      {
+        "author": "claude",
+        "content": "핵심은 `FileAttachment`와 `ChatRoom` 사이에 직접적인 관계가 없기 때문입니다.\n\n현재 엔티티 관계: `ChatRoom ← Message → FileAttachment`\n\nfileId로부터 chatRoomId를 알려면 중간에 있는 `Message`를 거쳐야 합니다. `FileAttachment`는 누가 업로드했는지(`uploader`)만 알고, 어느 채팅방에 보내졌는지는 모릅니다. 그 정보는 `Message`가 가지고 있어서 `MessageRepository`에 쿼리를 둔 것입니다.\n\n만약 `FileAttachment`에 `chatRoom` 필드를 직접 두면 `ChatRoomRepository`나 `FileAttachmentRepository`에서 바로 조회할 수 있어서 훨씬 단순해집니다. 다만 그러면 파일 업로드 시점에 chatRoomId를 알아야 하는데, 현재 흐름은 업로드(POST /files) → 메시지 전송(WebSocket)이 분리되어 있어서 업로드 시점에는 어느 채팅방에 보낼지 모릅니다.\n\n즉 현재 구조의 트레이드오프입니다:\n- 업로드/전송 분리의 유연성 → 대신 역추적 쿼리가 필요\n- 파일에 chatRoom을 넣으면 → 조회는 단순하지만 업로드 시 chatRoomId 필수",
+        "createdAt": "2026-03-02T04:45:00.000Z"
+      },
+      {
+        "author": "user",
+        "content": "업로드를 보통 채팅방 안에서 하지 않아? \nChatRoom에 파일이 종속되는 구조인데 왜 굳이 \nChatRoom과 FileAttachment의 관계를 끊어놓은거지?",
+        "createdAt": "2026-03-03T11:28:59.420Z"
+      },
+      {
+        "author": "claude",
+        "content": "맞는 말입니다. 채팅 앱에서 파일 업로드는 항상 채팅방 안에서 일어나니까, FileAttachment가 ChatRoom을 알고 있는 게 자연스럽습니다.\n\n현재 구조가 이렇게 된 이유는 업로드 API(`POST /files`)를 범용적으로 설계하면서 chatRoomId를 받지 않았기 때문입니다. 업로드와 메시지 전송을 분리하면 \"파일을 미리 올려두고 나중에 보낸다\"는 시나리오도 가능하지만, 실제 채팅에서 그런 케이스는 거의 없습니다.\n\n개선 방향:\n- 업로드 시 `chatRoomId`를 필수로 받고, `FileAttachment`에 `@ManyToOne ChatRoom chatRoom` 필드를 추가\n- 그러면 다운로드 권한 검증이 `fileAttachmentRepository`에서 바로 chatRoomId를 가져올 수 있어서, `MessageRepository`를 거치는 역추적 쿼리가 필요 없어짐\n- 업로더가 해당 채팅방 멤버인지도 업로드 시점에 검증 가능\n\n현재 구조는 불필요하게 간접적이라는 지적이 맞고, 리팩터링 대상입니다.",
+        "createdAt": "2026-03-03T11:35:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": 1772425841673,
+    "file": "src/main/java/com/bok/chat/api/service/FileDownloadService.java",
+    "line": 62,
+    "content": "row[0], row[1] 이렇게 하니까 무슨 의미인지를 모르겠음",
+    "context": "                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));",
+    "commitHash": "aef6f458667ed9a85e060c828d048dc8be703625",
+    "createdAt": "2026-03-02T04:30:41.673Z",
+    "replies": [
+      {
+        "author": "claude",
+        "content": "맞습니다. `row[0]`이 fileId이고 `row[1]`이 chatRoomId인데, 코드만 보면 전혀 알 수 없습니다. 위 코멘트의 `Object[]` 문제와 같은 근본 원인입니다.\n\nProjection 레코드로 바꾸면 `Collectors.toMap(FileRoomMapping::fileId, FileRoomMapping::chatRoomId)`가 되어 의미가 명확해집니다. 함께 리팩터링하겠습니다.",
+        "createdAt": "2026-03-02T04:40:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": 1772425956023,
+    "file": "src/main/java/com/bok/chat/api/service/FileDownloadService.java",
+    "line": 81,
+    "content": "썸네일URL 가져오는거 중복코드 같은데",
+    "context": "                        thumbnailUrl = fileStorageService.generatePresignedUrl(thumbnailKey);",
+    "commitHash": "aef6f458667ed9a85e060c828d048dc8be703625",
+    "createdAt": "2026-03-02T04:32:36.023Z",
+    "replies": [
+      {
+        "author": "claude",
+        "content": "맞습니다. `getThumbnailUrl()` 단건 메서드(line 46~47)와 `getBatchDownloadUrls()` 내부(line 80~81)에서 동일한 패턴(썸네일 키 생성 → presigned URL 생성)이 반복됩니다.\n\n`generateThumbnailUrl(FileAttachment file)` 같은 private 메서드로 추출하면 단건/배치 모두에서 재사용할 수 있습니다. 원본 URL 생성도 같은 패턴이니 `generateDownloadUrl(FileAttachment file)`도 함께 추출하겠습니다.",
+        "createdAt": "2026-03-02T04:40:00.000Z"
+      }
+    ]
   }
 ]

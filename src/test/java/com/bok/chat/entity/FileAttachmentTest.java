@@ -5,11 +5,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import static com.bok.chat.support.TestFixtures.createChatRoom;
 import static com.bok.chat.support.TestFixtures.createUser;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("FileAttachment 엔티티")
 class FileAttachmentTest {
+
+    private final ChatRoom chatRoom = createChatRoom(1L, 2);
 
     @Nested
     @DisplayName("팩토리 메서드")
@@ -20,9 +23,10 @@ class FileAttachmentTest {
         void create_imageFile_shouldSetThumbnailStatusPending() {
             User uploader = createUser(1L, "user1");
 
-            FileAttachment attachment = FileAttachment.create(uploader, "photo.jpg", "image/jpeg", 1024);
+            FileAttachment attachment = FileAttachment.create(uploader, chatRoom, "photo.jpg", "image/jpeg", 1024);
 
             assertThat(attachment.getUploader()).isEqualTo(uploader);
+            assertThat(attachment.getChatRoom()).isEqualTo(chatRoom);
             assertThat(attachment.getOriginalFilename()).isEqualTo("photo.jpg");
             assertThat(attachment.getContentType()).isEqualTo("image/jpeg");
             assertThat(attachment.getFileSize()).isEqualTo(1024);
@@ -34,7 +38,7 @@ class FileAttachmentTest {
         void create_nonImageFile_shouldSetThumbnailStatusNone() {
             User uploader = createUser(1L, "user1");
 
-            FileAttachment attachment = FileAttachment.create(uploader, "doc.pdf", "application/pdf", 2048);
+            FileAttachment attachment = FileAttachment.create(uploader, chatRoom, "doc.pdf", "application/pdf", 2048);
 
             assertThat(attachment.getThumbnailStatus()).isEqualTo(ThumbnailStatus.NONE);
         }
@@ -44,7 +48,7 @@ class FileAttachmentTest {
         void create_pngFile_shouldSetThumbnailStatusPending() {
             User uploader = createUser(1L, "user1");
 
-            FileAttachment attachment = FileAttachment.create(uploader, "image.png", "image/png", 512);
+            FileAttachment attachment = FileAttachment.create(uploader, chatRoom, "image.png", "image/png", 512);
 
             assertThat(attachment.getThumbnailStatus()).isEqualTo(ThumbnailStatus.PENDING);
         }
@@ -54,7 +58,7 @@ class FileAttachmentTest {
         void create_gifFile_shouldSetThumbnailStatusPending() {
             User uploader = createUser(1L, "user1");
 
-            FileAttachment attachment = FileAttachment.create(uploader, "anim.gif", "image/gif", 256);
+            FileAttachment attachment = FileAttachment.create(uploader, chatRoom, "anim.gif", "image/gif", 256);
 
             assertThat(attachment.getThumbnailStatus()).isEqualTo(ThumbnailStatus.PENDING);
         }
@@ -64,7 +68,7 @@ class FileAttachmentTest {
         void create_webpFile_shouldSetThumbnailStatusPending() {
             User uploader = createUser(1L, "user1");
 
-            FileAttachment attachment = FileAttachment.create(uploader, "photo.webp", "image/webp", 768);
+            FileAttachment attachment = FileAttachment.create(uploader, chatRoom, "photo.webp", "image/webp", 768);
 
             assertThat(attachment.getThumbnailStatus()).isEqualTo(ThumbnailStatus.PENDING);
         }
@@ -74,7 +78,7 @@ class FileAttachmentTest {
         void create_shouldHaveNullPaths() {
             User uploader = createUser(1L, "user1");
 
-            FileAttachment attachment = FileAttachment.create(uploader, "file.pdf", "application/pdf", 1024);
+            FileAttachment attachment = FileAttachment.create(uploader, chatRoom, "file.pdf", "application/pdf", 1024);
 
             assertThat(attachment.getStoredPath()).isNull();
             assertThat(attachment.getThumbnailPath()).isNull();
@@ -89,7 +93,7 @@ class FileAttachmentTest {
         @DisplayName("assignStoredPath로 저장 경로를 설정한다")
         void assignStoredPath_shouldSetStoredPath() {
             User uploader = createUser(1L, "user1");
-            FileAttachment attachment = FileAttachment.create(uploader, "photo.jpg", "image/jpeg", 1024);
+            FileAttachment attachment = FileAttachment.create(uploader, chatRoom, "photo.jpg", "image/jpeg", 1024);
 
             attachment.assignStoredPath("files/1/original.jpg");
 
@@ -100,7 +104,7 @@ class FileAttachmentTest {
         @DisplayName("completeThumbnail로 썸네일 경로와 상태를 설정한다")
         void completeThumbnail_shouldSetPathAndStatus() {
             User uploader = createUser(1L, "user1");
-            FileAttachment attachment = FileAttachment.create(uploader, "photo.jpg", "image/jpeg", 1024);
+            FileAttachment attachment = FileAttachment.create(uploader, chatRoom, "photo.jpg", "image/jpeg", 1024);
 
             attachment.completeThumbnail("files/1/thumbnail.jpg");
 
@@ -112,7 +116,7 @@ class FileAttachmentTest {
         @DisplayName("failThumbnail로 썸네일 실패 상태를 설정한다")
         void failThumbnail_shouldSetFailedStatus() {
             User uploader = createUser(1L, "user1");
-            FileAttachment attachment = FileAttachment.create(uploader, "photo.jpg", "image/jpeg", 1024);
+            FileAttachment attachment = FileAttachment.create(uploader, chatRoom, "photo.jpg", "image/jpeg", 1024);
 
             attachment.failThumbnail();
 

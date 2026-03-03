@@ -19,6 +19,10 @@ public class FileAttachment extends BaseEntity {
     @JoinColumn(name = "uploader_id", nullable = false)
     private User uploader;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chatroom_id", nullable = false)
+    private ChatRoom chatRoom;
+
     @Column(nullable = false)
     private String originalFilename;
 
@@ -36,16 +40,17 @@ public class FileAttachment extends BaseEntity {
     @Column(nullable = false)
     private ThumbnailStatus thumbnailStatus;
 
-    private FileAttachment(User uploader, String originalFilename, String contentType, long fileSize) {
+    private FileAttachment(User uploader, ChatRoom chatRoom, String originalFilename, String contentType, long fileSize) {
         this.uploader = uploader;
+        this.chatRoom = chatRoom;
         this.originalFilename = originalFilename;
         this.contentType = contentType;
         this.fileSize = fileSize;
         this.thumbnailStatus = isImage(contentType) ? ThumbnailStatus.PENDING : ThumbnailStatus.NONE;
     }
 
-    public static FileAttachment create(User uploader, String originalFilename, String contentType, long fileSize) {
-        return new FileAttachment(uploader, originalFilename, contentType, fileSize);
+    public static FileAttachment create(User uploader, ChatRoom chatRoom, String originalFilename, String contentType, long fileSize) {
+        return new FileAttachment(uploader, chatRoom, originalFilename, contentType, fileSize);
     }
 
     public void assignStoredPath(String storedPath) {

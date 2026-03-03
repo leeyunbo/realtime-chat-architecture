@@ -1,9 +1,12 @@
 package com.bok.chat.api.service;
 
 import com.bok.chat.api.dto.FileUploadResponse;
+import com.bok.chat.entity.ChatRoom;
 import com.bok.chat.entity.FileAttachment;
 import com.bok.chat.entity.User;
 import com.bok.chat.event.FileUploadedEvent;
+import com.bok.chat.repository.ChatRoomRepository;
+import com.bok.chat.repository.ChatRoomUserRepository;
 import com.bok.chat.repository.FileAttachmentRepository;
 import com.bok.chat.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,18 +35,27 @@ public class FileUploadService {
 
     private final FileAttachmentRepository fileAttachmentRepository;
     private final UserRepository userRepository;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomUserRepository chatRoomUserRepository;
     private final FileStorageService fileStorageService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public FileUploadResponse upload(Long uploaderId, MultipartFile file) {
+    public FileUploadResponse upload(Long uploaderId, Long chatRoomId, MultipartFile file) {
         validate(file);
 
         User uploader = userRepository.findById(uploaderId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
+
+        chatRoomUserRepository.findByChatRoomIdAndUserId(chatRoomId, uploaderId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 채팅방의 멤버만 파일을 업로드할 수 있습니다."));
+
         FileAttachment attachment = FileAttachment.create(
                 uploader,
+                chatRoom,
                 file.getOriginalFilename(),
                 file.getContentType(),
                 file.getSize()

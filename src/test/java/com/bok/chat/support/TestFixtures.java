@@ -41,8 +41,8 @@ public class TestFixtures {
         return friendship;
     }
 
-    public static FileAttachment createFileAttachment(Long id, User uploader, String filename, String contentType, long fileSize) {
-        FileAttachment attachment = FileAttachment.create(uploader, filename, contentType, fileSize);
+    public static FileAttachment createFileAttachment(Long id, ChatRoom chatRoom, User uploader, String filename, String contentType, long fileSize) {
+        FileAttachment attachment = FileAttachment.create(uploader, chatRoom, filename, contentType, fileSize);
         ReflectionTestUtils.setField(attachment, "id", id);
         return attachment;
     }

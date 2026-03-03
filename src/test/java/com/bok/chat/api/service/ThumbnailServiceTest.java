@@ -119,7 +119,8 @@ class ThumbnailServiceTest {
 
     private FileAttachment createImageAttachment() {
         User uploader = User.builder().username("tester").password("password").build();
-        FileAttachment file = FileAttachment.create(uploader, "test.png", "image/png", 1024);
+        com.bok.chat.entity.ChatRoom chatRoom = com.bok.chat.entity.ChatRoom.create(2);
+        FileAttachment file = FileAttachment.create(uploader, chatRoom, "test.png", "image/png", 1024);
         file.assignStoredPath("files/1/original.png");
         setId(file, 1L);
         return file;
@@ -127,7 +128,8 @@ class ThumbnailServiceTest {
 
     private FileAttachment createNonImageAttachment() {
         User uploader = User.builder().username("tester").password("password").build();
-        FileAttachment file = FileAttachment.create(uploader, "doc.pdf", "application/pdf", 2048);
+        com.bok.chat.entity.ChatRoom chatRoom = com.bok.chat.entity.ChatRoom.create(2);
+        FileAttachment file = FileAttachment.create(uploader, chatRoom, "doc.pdf", "application/pdf", 2048);
         file.assignStoredPath("files/1/original.pdf");
         setId(file, 1L);
         return file;
