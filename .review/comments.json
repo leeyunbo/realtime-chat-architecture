@@ -283,5 +283,21 @@
         "createdAt": "2026-03-02T04:40:00.000Z"
       }
     ]
+  },
+  {
+    "id": 1772540239432,
+    "file": "src/main/java/com/bok/chat/api/service/ChatMessageService.java",
+    "line": 142,
+    "content": "get이 반복이다 디미터의 법칙 안지킴?",
+    "context": "        if (!file.getChatRoom().getId().equals(chatRoomId)) {",
+    "commitHash": "a16be0c9562d6d136eae8a8836ba2564e005728d",
+    "createdAt": "2026-03-03T12:17:19.432Z",
+    "replies": [
+      {
+        "author": "claude",
+        "content": "맞습니다. `file.getChatRoom().getId()`는 `file.isUploadedBy(senderId)`와 같은 패턴으로 개선할 수 있습니다. `FileAttachment`에 `belongsTo(Long chatRoomId)` 메서드를 추가하면 `file.belongsTo(chatRoomId)`로 판단을 객체에 위임할 수 있습니다. `isUploadedBy`를 반영할 때 함께 적용했어야 하는데 놓쳤습니다. 수정하겠습니다.",
+        "createdAt": "2026-03-03T12:20:00.000Z"
+      }
+    ]
   }
 ]

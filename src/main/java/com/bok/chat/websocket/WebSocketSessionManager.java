@@ -15,8 +15,8 @@ public class WebSocketSessionManager {
         sessions.put(userId, session);
     }
 
-    public void remove(Long userId) {
-        sessions.remove(userId);
+    public boolean remove(Long userId, WebSocketSession session) {
+        return sessions.remove(userId, session);
     }
 
     public WebSocketSession getSession(Long userId) {

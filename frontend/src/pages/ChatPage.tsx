@@ -4,6 +4,7 @@ import useWebSocket from '../hooks/useWebSocket';
 import useChatRooms from '../hooks/useChatRooms';
 import Sidebar from '../components/Sidebar';
 import ChatView from '../components/ChatView';
+import { uploadFile } from '../api/client';
 import type { WSMessage } from '../types';
 
 export default function ChatPage() {
@@ -11,6 +12,7 @@ export default function ChatPage() {
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
   const selectedRoomIdRef = useRef(selectedRoomId);
   selectedRoomIdRef.current = selectedRoomId;
+  const [uploading, setUploading] = useState(false);
 
   const {
     rooms,
@@ -60,6 +62,25 @@ export default function ChatPage() {
     [send],
   );
 
+  const handleSendFile = useCallback(
+    async (roomId: number, file: File) => {
+      setUploading(true);
+      try {
+        const result = await uploadFile(roomId, file);
+        send({
+          type: 'message.send',
+          chatRoomId: roomId,
+          fileId: result.fileId,
+        });
+      } catch (err) {
+        alert(err instanceof Error ? err.message : '파일 업로드에 실패했습니다.');
+      } finally {
+        setUploading(false);
+      }
+    },
+    [send],
+  );
+
   const handleReadMessages = useCallback(
     (roomId: number) => {
       send({ type: 'message.read', chatRoomId: roomId });
@@ -81,6 +102,8 @@ export default function ChatPage() {
       <ChatView
         roomId={selectedRoomId}
         onSend={handleSend}
+        onSendFile={handleSendFile}
+        uploading={uploading}
         onReadMessages={handleReadMessages}
         messageReceivedRef={messageReceivedRef}
         messageUpdatedRef={messageUpdatedRef}

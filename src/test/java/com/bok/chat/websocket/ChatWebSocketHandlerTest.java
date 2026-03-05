@@ -139,14 +139,27 @@ class ChatWebSocketHandlerTest {
         @Test
         @DisplayName("연결 해제 시 세션 제거, 오프라인 설정, 친구에게 상태 알림을 보낸다")
         void afterConnectionClosed() {
+            given(sessionManager.remove(1L, session)).willReturn(true);
             given(userRepository.findById(1L)).willReturn(Optional.of(createUser(1L, "alice")));
             given(friendService.getFriendIds(1L)).willReturn(List.of(2L));
 
             handler.afterConnectionClosed(session, CloseStatus.NORMAL);
 
-            verify(sessionManager).remove(1L);
+            verify(sessionManager).remove(1L, session);
             verify(onlineStatusService).setOffline(1L);
             verify(friendService).getFriendIds(1L);
+        }
+
+        @Test
+        @DisplayName("이미 새 세션으로 교체된 경우 오프라인 처리하지 않는다")
+        void afterConnectionClosed_staleSession() {
+            given(sessionManager.remove(1L, session)).willReturn(false);
+
+            handler.afterConnectionClosed(session, CloseStatus.NORMAL);
+
+            verify(sessionManager).remove(1L, session);
+            verify(onlineStatusService, never()).setOffline(1L);
+            verify(friendService, never()).getFriendIds(1L);
         }
     }
 

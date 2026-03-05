@@ -139,7 +139,7 @@ public class ChatMessageService {
             throw new IllegalArgumentException("본인이 업로드한 파일만 전송할 수 있습니다.");
         }
 
-        if (!file.getChatRoom().getId().equals(chatRoomId)) {
+        if (!file.belongsTo(chatRoomId)) {
             throw new IllegalArgumentException("해당 채팅방에 업로드된 파일이 아닙니다.");
         }
 

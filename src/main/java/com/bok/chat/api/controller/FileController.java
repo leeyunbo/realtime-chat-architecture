@@ -45,7 +45,11 @@ public class FileController {
             Authentication authentication,
             @PathVariable Long fileId) {
         Long userId = (Long) authentication.getPrincipal();
-        return ResponseEntity.ok(fileDownloadService.getThumbnailUrl(userId, fileId));
+        try {
+            return ResponseEntity.ok(fileDownloadService.getThumbnailUrl(userId, fileId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/download-urls")

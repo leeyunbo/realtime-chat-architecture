@@ -17,6 +17,8 @@ export interface ChatRoomResponse {
 }
 
 // Message
+export type MessageType = 'CHAT' | 'SYSTEM' | 'FILE';
+
 export interface MessageResponse {
   id: number;
   senderId: number;
@@ -24,6 +26,26 @@ export interface MessageResponse {
   content: string;
   unreadCount: number;
   createdAt: string;
+  fileId?: number;
+  originalFilename?: string;
+  contentType?: string;
+  fileSize?: number;
+}
+
+// File
+export interface FileUploadResponse {
+  fileId: number;
+  originalFilename: string;
+  contentType: string;
+  fileSize: number;
+  thumbnailStatus: 'PENDING' | 'COMPLETED' | 'FAILED' | 'NONE';
+}
+
+export interface FileDownloadResponse {
+  downloadUrl: string;
+  originalFilename: string;
+  contentType: string;
+  fileSize: number;
 }
 
 // Friend
@@ -52,4 +74,8 @@ export interface WSMessage {
   messageId?: number;
   unreadCount?: number;
   online?: boolean;
+  fileId?: number;
+  originalFilename?: string;
+  contentType?: string;
+  fileSize?: number;
 }

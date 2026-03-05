@@ -24,14 +24,28 @@ class WebSocketSessionManagerTest {
     }
 
     @Test
-    @DisplayName("세션을 제거하면 조회할 수 없다")
-    void remove_session() {
+    @DisplayName("동일 세션으로 제거하면 조회할 수 없다")
+    void remove_sameSession() {
         WebSocketSession session = mock(WebSocketSession.class);
         manager.register(1L, session);
 
-        manager.remove(1L);
+        boolean removed = manager.remove(1L, session);
 
+        assertThat(removed).isTrue();
         assertThat(manager.getSession(1L)).isNull();
+    }
+
+    @Test
+    @DisplayName("다른 세션으로 제거하면 기존 세션이 유지된다")
+    void remove_differentSession_keepsExisting() {
+        WebSocketSession oldSession = mock(WebSocketSession.class);
+        WebSocketSession newSession = mock(WebSocketSession.class);
+        manager.register(1L, newSession);
+
+        boolean removed = manager.remove(1L, oldSession);
+
+        assertThat(removed).isFalse();
+        assertThat(manager.getSession(1L)).isSameAs(newSession);
     }
 
     @Test

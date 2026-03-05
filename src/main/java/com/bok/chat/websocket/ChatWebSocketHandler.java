@@ -75,11 +75,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         Long userId = getUserId(session);
-        sessionManager.remove(userId);
-        onlineStatusService.setOffline(userId);
-        log.info("WebSocket disconnected: userId={}", userId);
-
-        notifyFriendsStatus(userId, false);
+        boolean removed = sessionManager.remove(userId, session);
+        if (removed) {
+            onlineStatusService.setOffline(userId);
+            notifyFriendsStatus(userId, false);
+        }
+        log.info("WebSocket disconnected: userId={}, sessionRemoved={}", userId, removed);
     }
 
     private void handleSendMessage(Long senderId, WebSocketMessage message) {

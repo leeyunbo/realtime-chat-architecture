@@ -22,7 +22,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class FileUploadService {
 
-    private static final long MAX_FILE_SIZE = 3 * 1024 * 1024;
+    private static final long MAX_FILE_SIZE = 20 * 1024 * 1024;
     private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
             "image/jpeg",
             "image/png",
@@ -95,7 +95,7 @@ public class FileUploadService {
             throw new IllegalArgumentException("파일명이 없습니다.");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("파일 크기는 3MB를 초과할 수 없습니다.");
+            throw new IllegalArgumentException("파일 크기는 20MB를 초과할 수 없습니다.");
         }
         if (!ALLOWED_MIME_TYPES.contains(file.getContentType())) {
             throw new IllegalArgumentException("허용되지 않는 파일 형식입니다.");

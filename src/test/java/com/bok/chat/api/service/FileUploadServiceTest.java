@@ -235,16 +235,16 @@ class FileUploadServiceTest {
         }
 
         @Test
-        @DisplayName("3MB 초과 파일은 업로드할 수 없다")
+        @DisplayName("20MB 초과 파일은 업로드할 수 없다")
         void upload_oversizedFile_shouldThrow() {
             MultipartFile file = mock(MultipartFile.class);
             given(file.isEmpty()).willReturn(false);
             given(file.getOriginalFilename()).willReturn("large.jpg");
-            given(file.getSize()).willReturn(4 * 1024 * 1024L);
+            given(file.getSize()).willReturn(21 * 1024 * 1024L);
 
             assertThatThrownBy(() -> fileUploadService.upload(1L, 1L, file))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("3MB");
+                    .hasMessageContaining("20MB");
         }
 
         @Test

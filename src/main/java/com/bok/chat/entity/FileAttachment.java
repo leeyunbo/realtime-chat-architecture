@@ -70,6 +70,10 @@ public class FileAttachment extends BaseEntity {
         return this.uploader.getId().equals(userId);
     }
 
+    public boolean belongsTo(Long chatRoomId) {
+        return this.chatRoom.getId().equals(chatRoomId);
+    }
+
     private static boolean isImage(String contentType) {
         return contentType != null && contentType.startsWith("image/");
     }

@@ -1,3 +1,5 @@
+import type { FileUploadResponse, FileDownloadResponse } from '../types';
+
 const BASE_URL = '/api';
 
 function getToken(): string | null {
@@ -39,4 +41,32 @@ export async function apiFetch<T>(
     return res.json();
   }
   return res.text() as unknown as T;
+}
+
+export async function uploadFile(chatRoomId: number, file: File): Promise<FileUploadResponse> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('chatRoomId', String(chatRoomId));
+
+  const res = await fetch(`${BASE_URL}/files`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Upload failed: HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function getDownloadUrl(fileId: number): Promise<FileDownloadResponse> {
+  return apiFetch(`/files/${fileId}/download-url`);
+}
+
+export async function getThumbnailUrl(fileId: number): Promise<FileDownloadResponse> {
+  return apiFetch(`/files/${fileId}/thumbnail-url`);
 }

@@ -10,6 +10,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -24,8 +26,9 @@ public class MessageService {
         ChatRoomUser membership = chatRoomUserRepository.findByChatRoomIdAndUserId(chatRoomId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방 멤버가 아닙니다."));
 
-        List<Message> messages = messageRepository.findByChatRoomIdAndCreatedAtAfter(
-                chatRoomId, membership.getJoinedAt(), PageRequest.of(page, size));
+        List<Message> messages = new ArrayList<>(messageRepository.findByChatRoomIdAndCreatedAtAfter(
+                chatRoomId, membership.getJoinedAt(), PageRequest.of(page, size)));
+        Collections.reverse(messages);
 
         return messages.stream()
                 .map(MessageResponse::from)

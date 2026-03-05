@@ -6,6 +6,8 @@ import type { WSMessage } from '../types';
 interface Props {
   roomId: number | null;
   onSend: (roomId: number, content: string) => void;
+  onSendFile: (roomId: number, file: File) => void;
+  uploading: boolean;
   onReadMessages: (roomId: number) => void;
   messageReceivedRef: MutableRefObject<((msg: WSMessage) => void) | null>;
   messageUpdatedRef: MutableRefObject<((msg: WSMessage) => void) | null>;
@@ -15,6 +17,8 @@ interface Props {
 export default function ChatView({
   roomId,
   onSend,
+  onSendFile,
+  uploading,
   onReadMessages,
   messageReceivedRef,
   messageUpdatedRef,
@@ -46,6 +50,8 @@ export default function ChatView({
       <MessageInput
         roomId={roomId}
         onSend={(content) => onSend(roomId, content)}
+        onSendFile={(file) => onSendFile(roomId, file)}
+        uploading={uploading}
       />
     </div>
   );
