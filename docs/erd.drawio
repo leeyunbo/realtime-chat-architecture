@@ -1,0 +1,62 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.6.1">
+  <diagram id="erd" name="ERD">
+    <mxGraphModel dx="820" dy="476" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;User&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px 8px;font-size:11px;line-height:1.7&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#0000CC&#39;&gt;UQ&lt;/font&gt; username: VARCHAR&lt;br&gt;password: VARCHAR (BCrypt)&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="145" width="240" x="350" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="friendship" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;Friendship&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px 8px;font-size:11px;line-height:1.7&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; user_id: BIGINT &lt;font color=&#39;#0000CC&#39;&gt;(UQ)&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; friend_id: BIGINT &lt;font color=&#39;#0000CC&#39;&gt;(UQ)&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="145" width="220" x="30" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="chatroom" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;ChatRoom&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px 8px;font-size:11px;line-height:1.7&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;type: DIRECT | GROUP&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="125" width="240" x="820" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="chatroom_user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;ChatRoomUser&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px 8px;font-size:11px;line-height:1.7&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; chatroom_id: BIGINT &lt;font color=&#39;#0000CC&#39;&gt;(UQ)&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; user_id: BIGINT &lt;font color=&#39;#0000CC&#39;&gt;(UQ)&lt;/font&gt;&lt;br&gt;status: ACTIVE | LEFT&lt;br&gt;last_read_message_id: BIGINT&lt;br&gt;joined_at: TIMESTAMP&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="200" width="260" x="720" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="message" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;Message&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px 8px;font-size:11px;line-height:1.7&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; chatroom_id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; sender_id: BIGINT (nullable)&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; file_id: BIGINT (nullable)&lt;br&gt;type: CHAT | SYSTEM | FILE&lt;br&gt;content: TEXT&lt;br&gt;unread_count: INT&lt;br&gt;edited / deleted: BOOLEAN&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="250" width="270" x="200" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="file" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;FileAttachment&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px 8px;font-size:11px;line-height:1.7&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; uploader_id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; chatroom_id: BIGINT&lt;br&gt;original_filename: VARCHAR&lt;br&gt;stored_path: VARCHAR&lt;br&gt;thumbnail_path: VARCHAR (nullable)&lt;br&gt;content_type: VARCHAR&lt;br&gt;file_size: BIGINT&lt;br&gt;thumbnail_status: ENUM&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="270" width="270" x="720" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="rel1" edge="1" parent="1" source="user" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;" target="friendship" value="1 : N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel2" edge="1" parent="1" source="user" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" target="chatroom_user" value="1 : N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel3" edge="1" parent="1" source="chatroom" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="chatroom_user" value="1 : N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel4" edge="1" parent="1" source="user" style="endArrow=ERmany;endFill=0;startArrow=ERzeroToOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" target="message" value="0..1 : N&#xa;(sender)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel5" edge="1" parent="1" source="chatroom" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" target="message" value="1 : N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1130" y="155" />
+              <mxPoint x="1130" y="530" />
+              <mxPoint x="470" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel6" edge="1" parent="1" source="message" style="endArrow=ERzeroToOne;endFill=0;startArrow=ERzeroToOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" target="file" value="0..1 : 1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel7" edge="1" parent="1" source="user" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" target="file" value="1 : N&#xa;(uploader)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="518" y="210" />
+              <mxPoint x="600" y="240" />
+              <mxPoint x="650" y="520" />
+              <mxPoint x="801" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,105 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.6.1">
+  <diagram id="arch" name="System Architecture">
+    <mxGraphModel dx="1723" dy="999" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="LoQviZfczo2Xk_agkrCh-22" parent="1" style="text;html=1;fontSize=22;fontStyle=1;align=center;" value="Entity Relationship Diagram" vertex="1">
+          <mxGeometry height="35" width="400" x="450" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-23" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;User&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px;font-size:11px;line-height:1.6&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#0000CC&#39;&gt;UQ&lt;/font&gt; username: VARCHAR&lt;br&gt;password: VARCHAR (BCrypt)&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="140" width="230" x="60" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;ChatRoom&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px;font-size:11px;line-height:1.6&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;type: DIRECT | GROUP&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="230" x="560" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-25" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;ChatRoomUser&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px;font-size:11px;line-height:1.6&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; chatroom_id: BIGINT &lt;font color=&#39;#0000CC&#39;&gt;(UQ)&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; user_id: BIGINT &lt;font color=&#39;#0000CC&#39;&gt;(UQ)&lt;/font&gt;&lt;br&gt;status: ACTIVE | LEFT&lt;br&gt;last_read_message_id: BIGINT&lt;br&gt;joined_at: TIMESTAMP&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="195" width="260" x="300" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-26" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;Message&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px;font-size:11px;line-height:1.6&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; chatroom_id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; sender_id: BIGINT (nullable)&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; file_id: BIGINT (nullable)&lt;br&gt;type: CHAT | SYSTEM | FILE&lt;br&gt;content: TEXT&lt;br&gt;unread_count: INT&lt;br&gt;edited / deleted: BOOLEAN&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="240" width="260" x="300" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-27" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;FileAttachment&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px;font-size:11px;line-height:1.6&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; uploader_id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; chatroom_id: BIGINT&lt;br&gt;original_filename: VARCHAR&lt;br&gt;stored_path: VARCHAR&lt;br&gt;thumbnail_path: VARCHAR (nullable)&lt;br&gt;content_type: VARCHAR&lt;br&gt;file_size: BIGINT&lt;br&gt;thumbnail_status: ENUM&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="260" width="270" x="760" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-28" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;arcSize=8;" value="&lt;b style=&#39;font-size:14px&#39;&gt;Friendship&lt;/b&gt;&lt;hr size=&#39;1&#39;&gt;&lt;div style=&#39;text-align:left;padding:4px;font-size:11px;line-height:1.6&#39;&gt;&lt;font color=&#39;#CC0000&#39;&gt;PK&lt;/font&gt; id: BIGINT&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; user_id: BIGINT &lt;font color=&#39;#0000CC&#39;&gt;(UQ)&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#008800&#39;&gt;FK&lt;/font&gt; friend_id: BIGINT &lt;font color=&#39;#0000CC&#39;&gt;(UQ)&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#888&#39;&gt;created_at / updated_at&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="140" width="200" x="60" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-29" edge="1" parent="1" source="LoQviZfczo2Xk_agkrCh-23" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="LoQviZfczo2Xk_agkrCh-28" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-30" connectable="0" parent="LoQviZfczo2Xk_agkrCh-29" style="edgeLabel;html=1;fontSize=10;fontColor=#555;" value="1 : N" vertex="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-31" edge="1" parent="1" source="LoQviZfczo2Xk_agkrCh-23" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" target="LoQviZfczo2Xk_agkrCh-25" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-32" connectable="0" parent="LoQviZfczo2Xk_agkrCh-31" style="edgeLabel;html=1;fontSize=10;fontColor=#555;" value="1 : N" vertex="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-33" edge="1" parent="1" source="LoQviZfczo2Xk_agkrCh-24" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;" target="LoQviZfczo2Xk_agkrCh-25" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-34" connectable="0" parent="LoQviZfczo2Xk_agkrCh-33" style="edgeLabel;html=1;fontSize=10;fontColor=#555;" value="1 : N" vertex="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-35" edge="1" parent="1" source="LoQviZfczo2Xk_agkrCh-24" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.1;entryDx=0;entryDy=0;" target="LoQviZfczo2Xk_agkrCh-26" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="790" y="190" />
+              <mxPoint x="790" y="520" />
+              <mxPoint x="660" y="520" />
+              <mxPoint x="660" y="584" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-36" connectable="0" parent="LoQviZfczo2Xk_agkrCh-35" style="edgeLabel;html=1;fontSize=10;fontColor=#555;" value="1 : N" vertex="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-37" edge="1" parent="1" source="LoQviZfczo2Xk_agkrCh-23" style="endArrow=ERmany;endFill=0;startArrow=ERzeroToOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.15;entryDx=0;entryDy=0;" target="LoQviZfczo2Xk_agkrCh-26" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="30" y="210" />
+              <mxPoint x="30" y="596" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-38" connectable="0" parent="LoQviZfczo2Xk_agkrCh-37" style="edgeLabel;html=1;fontSize=10;fontColor=#555;" value="0..1 : N&lt;br&gt;(sender)" vertex="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-39" edge="1" parent="1" source="LoQviZfczo2Xk_agkrCh-26" style="endArrow=ERzeroToOne;endFill=0;startArrow=ERzeroToOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="LoQviZfczo2Xk_agkrCh-27" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-40" connectable="0" parent="LoQviZfczo2Xk_agkrCh-39" style="edgeLabel;html=1;fontSize=10;fontColor=#555;" value="0..1 : 1" vertex="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-41" edge="1" parent="1" source="LoQviZfczo2Xk_agkrCh-27" style="endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;strokeColor=#555;strokeWidth=1.5;rounded=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="LoQviZfczo2Xk_agkrCh-23" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="560" />
+              <mxPoint x="1100" y="30" />
+              <mxPoint x="175" y="30" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LoQviZfczo2Xk_agkrCh-42" connectable="0" parent="LoQviZfczo2Xk_agkrCh-41" style="edgeLabel;html=1;fontSize=10;fontColor=#555;" value="1 : N (uploader)" vertex="1">
+          <mxGeometry relative="1" x="0.3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
