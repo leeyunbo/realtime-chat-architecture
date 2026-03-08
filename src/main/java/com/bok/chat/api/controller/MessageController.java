@@ -1,6 +1,7 @@
 package com.bok.chat.api.controller;
 
 import com.bok.chat.api.dto.MessageResponse;
+import com.bok.chat.api.dto.MessageSearchResponse;
 import com.bok.chat.api.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,5 +25,16 @@ public class MessageController {
             @RequestParam(defaultValue = "50") int size) {
         Long userId = (Long) authentication.getPrincipal();
         return ResponseEntity.ok(messageService.getMessages(userId, roomId, page, size));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<MessageSearchResponse> searchMessages(
+            Authentication authentication,
+            @PathVariable Long roomId,
+            @RequestParam("q") String query,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size) {
+        Long userId = (Long) authentication.getPrincipal();
+        return ResponseEntity.ok(messageService.searchMessages(userId, roomId, query, cursor, size));
     }
 }

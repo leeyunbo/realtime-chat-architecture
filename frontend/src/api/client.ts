@@ -1,4 +1,4 @@
-import type { FileUploadResponse, FileDownloadResponse } from '../types';
+import type { FileUploadResponse, FileDownloadResponse, MessageSearchResult } from '../types';
 
 const BASE_URL = '/api';
 
@@ -69,4 +69,17 @@ export async function getDownloadUrl(fileId: number): Promise<FileDownloadRespon
 
 export async function getThumbnailUrl(fileId: number): Promise<FileDownloadResponse> {
   return apiFetch(`/files/${fileId}/thumbnail-url`);
+}
+
+export async function searchMessages(
+  roomId: number,
+  query: string,
+  cursor?: number | null,
+  size: number = 20,
+): Promise<MessageSearchResult> {
+  const params = new URLSearchParams({ q: query, size: String(size) });
+  if (cursor) {
+    params.set('cursor', String(cursor));
+  }
+  return apiFetch(`/chatrooms/${roomId}/messages/search?${params}`);
 }

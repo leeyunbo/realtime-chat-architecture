@@ -48,6 +48,13 @@ export interface FileDownloadResponse {
   fileSize: number;
 }
 
+// Search
+export interface MessageSearchResult {
+  messages: MessageResponse[];
+  nextCursor: number | null;
+  hasNext: boolean;
+}
+
 // Friend
 export interface FriendResponse {
   id: number;
