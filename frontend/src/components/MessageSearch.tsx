@@ -27,7 +27,7 @@ function highlightKeyword(text: string, keyword: string) {
 export default function MessageSearch({ roomId, onClose }: Props) {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<MessageResponse[]>([]);
-  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -35,7 +35,7 @@ export default function MessageSearch({ roomId, onClose }: Props) {
   const lastQuery = useRef('');
 
   const doSearch = useCallback(
-    async (cursor?: number | null) => {
+    async (cursor?: string | null) => {
       const q = cursor ? lastQuery.current : query.trim();
       if (!q) return;
       lastQuery.current = q;

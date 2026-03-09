@@ -51,7 +51,7 @@ export interface FileDownloadResponse {
 // Search
 export interface MessageSearchResult {
   messages: MessageResponse[];
-  nextCursor: number | null;
+  nextCursor: string | null;
   hasNext: boolean;
 }
 

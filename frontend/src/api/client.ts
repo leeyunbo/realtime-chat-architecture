@@ -74,12 +74,12 @@ export async function getThumbnailUrl(fileId: number): Promise<FileDownloadRespo
 export async function searchMessages(
   roomId: number,
   query: string,
-  cursor?: number | null,
+  cursor?: string | null,
   size: number = 20,
 ): Promise<MessageSearchResult> {
   const params = new URLSearchParams({ q: query, size: String(size) });
   if (cursor) {
-    params.set('cursor', String(cursor));
+    params.set('cursor', cursor);
   }
   return apiFetch(`/chatrooms/${roomId}/messages/search?${params}`);
 }

@@ -32,7 +32,7 @@ public class MessageController {
             Authentication authentication,
             @PathVariable Long roomId,
             @RequestParam("q") String query,
-            @RequestParam(required = false) Long cursor,
+            @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size) {
         Long userId = (Long) authentication.getPrincipal();
         return ResponseEntity.ok(messageService.searchMessages(userId, roomId, query, cursor, size));

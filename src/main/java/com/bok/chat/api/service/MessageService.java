@@ -1,5 +1,6 @@
 package com.bok.chat.api.service;
 
+import com.bok.chat.api.dto.CursorPage;
 import com.bok.chat.api.dto.MessageResponse;
 import com.bok.chat.api.dto.MessageSearchResponse;
 import com.bok.chat.entity.ChatRoomUser;
@@ -14,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +23,7 @@ public class MessageService {
 
     private final MessageRepository messageRepository;
     private final ChatRoomUserRepository chatRoomUserRepository;
+    private final SearchQueryConverter searchQueryConverter;
 
     public List<MessageResponse> getMessages(Long userId, Long chatRoomId, int page, int size) {
         ChatRoomUser membership = chatRoomUserRepository.findByChatRoomIdAndUserId(chatRoomId, userId)
@@ -38,45 +39,30 @@ public class MessageService {
     }
 
     public MessageSearchResponse searchMessages(Long userId, Long chatRoomId,
-                                                 String keyword, Long cursor, int size) {
+                                                 String keyword, String cursor, int size) {
         ChatRoomUser membership = chatRoomUserRepository.findByChatRoomIdAndUserId(chatRoomId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방 멤버가 아닙니다."));
 
-        String tsQuery = toTsQuery(keyword);
+        String tsQuery = searchQueryConverter.convert(keyword);
         if (tsQuery.isBlank()) {
             return new MessageSearchResponse(List.of(), null, false);
         }
 
+        Long decodedCursor = CursorPage.decodeCursor(cursor);
         List<Long> ids = messageRepository.searchMessageIds(
-                chatRoomId, membership.getJoinedAt(), tsQuery, cursor, size + 1);
+                chatRoomId, membership.getJoinedAt(), tsQuery, decodedCursor, size + 1);
 
-        boolean hasNext = ids.size() > size;
-        if (hasNext) {
-            ids = ids.subList(0, size);
-        }
-
-        if (ids.isEmpty()) {
+        CursorPage<Long> page = CursorPage.of(ids, size, id -> id);
+        if (page.isEmpty()) {
             return new MessageSearchResponse(List.of(), null, false);
         }
 
-        List<Message> messages = messageRepository.findAllByIdWithSenderAndFile(ids);
+        List<Message> messages = messageRepository.findAllByIdWithSenderAndFile(page.items());
         List<MessageResponse> responses = messages.stream()
                 .map(MessageResponse::from)
                 .toList();
 
-        Long nextCursor = hasNext ? ids.get(ids.size() - 1) : null;
-        return new MessageSearchResponse(responses, nextCursor, hasNext);
+        return new MessageSearchResponse(responses, page.nextCursor(), page.hasNext());
     }
 
-    private String toTsQuery(String keyword) {
-        // 특수문자 제거 (tsquery 연산자 인젝션 방지)
-        String sanitized = keyword.replaceAll("[^\\p{L}\\p{N}\\s]", "").trim();
-        if (sanitized.isBlank()) {
-            return "";
-        }
-        return java.util.Arrays.stream(sanitized.split("\\s+"))
-                .filter(w -> !w.isBlank())
-                .map(w -> w + ":*")
-                .collect(Collectors.joining(" & "));
-    }
 }

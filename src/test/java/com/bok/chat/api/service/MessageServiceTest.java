@@ -1,5 +1,6 @@
 package com.bok.chat.api.service;
 
+import com.bok.chat.api.dto.CursorPage;
 import com.bok.chat.api.dto.MessageResponse;
 import com.bok.chat.api.dto.MessageSearchResponse;
 import com.bok.chat.entity.ChatRoom;
@@ -38,6 +39,9 @@ class MessageServiceTest {
 
     @Mock
     private ChatRoomUserRepository chatRoomUserRepository;
+
+    @Mock
+    private SearchQueryConverter searchQueryConverter;
 
     @Test
     @DisplayName("메시지 조회 시 발신자 이름과 내용이 포함된 응답을 반환한다")
@@ -87,6 +91,7 @@ class MessageServiceTest {
 
         given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
                 .willReturn(Optional.of(membership));
+        given(searchQueryConverter.convert("hello")).willReturn("hello:*");
         given(messageRepository.searchMessageIds(eq(1L), any(), eq("hello:*"), eq(null), eq(21)))
                 .willReturn(List.of(10L));
         given(messageRepository.findAllByIdWithSenderAndFile(List.of(10L)))
@@ -111,6 +116,7 @@ class MessageServiceTest {
 
         given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
                 .willReturn(Optional.of(membership));
+        given(searchQueryConverter.convert("hello")).willReturn("hello:*");
         // size=2이므로 3개 조회 → 3개 반환 → hasNext=true
         given(messageRepository.searchMessageIds(eq(1L), any(), eq("hello:*"), eq(null), eq(3)))
                 .willReturn(List.of(30L, 20L, 10L));
@@ -121,7 +127,7 @@ class MessageServiceTest {
 
         assertThat(response.messages()).hasSize(2);
         assertThat(response.hasNext()).isTrue();
-        assertThat(response.nextCursor()).isEqualTo(20L);
+        assertThat(CursorPage.decodeCursor(response.nextCursor())).isEqualTo(20L);
     }
 
     @Test
@@ -144,6 +150,7 @@ class MessageServiceTest {
 
         given(chatRoomUserRepository.findByChatRoomIdAndUserId(1L, 1L))
                 .willReturn(Optional.of(membership));
+        given(searchQueryConverter.convert("  ")).willReturn("");
 
         MessageSearchResponse response = messageService.searchMessages(1L, 1L, "  ", null, 20);
 
