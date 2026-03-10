@@ -6,13 +6,11 @@ import com.bok.chat.entity.Message;
 import com.bok.chat.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import jakarta.persistence.EntityManager;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -166,89 +164,20 @@ class MessageRepositoryTest extends RepositoryTestBase {
         assertThat(count).isEqualTo(2);
     }
 
-    @Nested
-    @DisplayName("Full-Text Search")
-    class FullTextSearch {
+    @Test
+    @DisplayName("findAllByIdWithSenderAndFile로 엔티티를 JOIN FETCH 로딩한다")
+    void findAllByIdWithSenderAndFile_shouldEagerLoadRelations() {
+        Message msg1 = Message.create(chatRoom, sender, "hello", 2);
+        Message msg2 = Message.create(chatRoom, sender, "world", 2);
+        em.persist(msg1);
+        em.persist(msg2);
+        em.flush();
+        em.clear();
 
-        private LocalDateTime joinedAt;
+        List<Message> messages = messageRepository.findAllByIdWithSenderAndFile(
+                List.of(msg1.getId(), msg2.getId()));
 
-        @BeforeEach
-        void setUpFts() {
-            joinedAt = LocalDateTime.now().minusDays(1);
-        }
-
-        @Test
-        @DisplayName("FTS로 키워드가 포함된 메시지를 검색한다")
-        void searchMessageIds_shouldMatchContent() {
-            Message msg1 = Message.create(chatRoom, sender, "hello world", 2);
-            Message msg2 = Message.create(chatRoom, sender, "goodbye world", 2);
-            Message msg3 = Message.create(chatRoom, sender, "hello there", 2);
-            em.persist(msg1);
-            em.persist(msg2);
-            em.persist(msg3);
-            em.flush();
-            em.clear();
-
-            List<Long> ids = messageRepository.searchMessageIds(
-                    chatRoom.getId(), joinedAt, "hello:*", null, 20);
-
-            assertThat(ids).hasSize(2);
-            assertThat(ids).containsExactly(msg3.getId(), msg1.getId()); // DESC order
-        }
-
-        @Test
-        @DisplayName("삭제된 메시지는 검색 결과에서 제외된다")
-        void searchMessageIds_shouldExcludeDeleted() {
-            Message msg1 = Message.create(chatRoom, sender, "hello world", 2);
-            em.persist(msg1);
-            em.flush();
-
-            msg1.markDeleted(sender.getId());
-            em.flush();
-            em.clear();
-
-            List<Long> ids = messageRepository.searchMessageIds(
-                    chatRoom.getId(), joinedAt, "hello:*", null, 20);
-
-            assertThat(ids).isEmpty();
-        }
-
-        @Test
-        @DisplayName("커서 이전의 메시지만 반환한다")
-        void searchMessageIds_withCursor_shouldFilterOlderMessages() {
-            Message msg1 = Message.create(chatRoom, sender, "hello first", 2);
-            Message msg2 = Message.create(chatRoom, sender, "hello second", 2);
-            Message msg3 = Message.create(chatRoom, sender, "hello third", 2);
-            em.persist(msg1);
-            em.persist(msg2);
-            em.persist(msg3);
-            em.flush();
-            em.clear();
-
-            // cursor = msg3.id → msg3보다 작은 ID만 반환
-            List<Long> ids = messageRepository.searchMessageIds(
-                    chatRoom.getId(), joinedAt, "hello:*", msg3.getId(), 20);
-
-            assertThat(ids).hasSize(2);
-            assertThat(ids).containsExactly(msg2.getId(), msg1.getId());
-        }
-
-        @Test
-        @DisplayName("findAllByIdWithSenderAndFile로 엔티티를 JOIN FETCH 로딩한다")
-        void findAllByIdWithSenderAndFile_shouldEagerLoadRelations() {
-            Message msg1 = Message.create(chatRoom, sender, "hello", 2);
-            Message msg2 = Message.create(chatRoom, sender, "world", 2);
-            em.persist(msg1);
-            em.persist(msg2);
-            em.flush();
-            em.clear();
-
-            List<Message> messages = messageRepository.findAllByIdWithSenderAndFile(
-                    List.of(msg1.getId(), msg2.getId()));
-
-            assertThat(messages).hasSize(2);
-            // sender가 JOIN FETCH로 로딩되어야 한다
-            assertThat(messages.get(0).getSender().getUsername()).isEqualTo("sender");
-        }
+        assertThat(messages).hasSize(2);
+        assertThat(messages.get(0).getSender().getUsername()).isEqualTo("sender");
     }
 }

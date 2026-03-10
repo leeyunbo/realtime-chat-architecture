@@ -83,3 +83,15 @@ export async function searchMessages(
   }
   return apiFetch(`/chatrooms/${roomId}/messages/search?${params}`);
 }
+
+export async function searchAllMessages(
+  query: string,
+  cursor?: string | null,
+  size: number = 20,
+): Promise<MessageSearchResult> {
+  const params = new URLSearchParams({ q: query, size: String(size) });
+  if (cursor) {
+    params.set('cursor', cursor);
+  }
+  return apiFetch(`/messages/search?${params}`);
+}
