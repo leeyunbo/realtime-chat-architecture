@@ -31,6 +31,7 @@ public class ChatMessageService {
     private final ChatRoomUserRepository chatRoomUserRepository;
     private final UserRepository userRepository;
     private final FileAttachmentRepository fileAttachmentRepository;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     @Transactional(readOnly = true)
     public List<UndeliveredMessages> getUndeliveredMessages(Long userId) {
@@ -59,6 +60,7 @@ public class ChatMessageService {
 
         Message saved = messageRepository.save(
                 Message.create(chatRoom, sender, content, members.size()));
+        outboxEventPublisher.publishMessageCreated(saved);
 
         return new SendResult(saved, sender, members);
     }
@@ -104,6 +106,7 @@ public class ChatMessageService {
                 .orElseThrow(() -> new IllegalArgumentException("메시지가 존재하지 않습니다."));
 
         message.edit(userId, newContent);
+        outboxEventPublisher.publishMessageUpdated(message);
 
         List<ChatRoomUser> members = chatRoomUserRepository
                 .findByChatRoomIdAndStatus(message.getChatRoom().getId(), ChatRoomUser.Status.ACTIVE);
@@ -117,6 +120,7 @@ public class ChatMessageService {
                 .orElseThrow(() -> new IllegalArgumentException("메시지가 존재하지 않습니다."));
 
         message.markDeleted(userId);
+        outboxEventPublisher.publishMessageDeleted(message);
 
         List<ChatRoomUser> members = chatRoomUserRepository
                 .findByChatRoomIdAndStatus(message.getChatRoom().getId(), ChatRoomUser.Status.ACTIVE);
@@ -148,6 +152,7 @@ public class ChatMessageService {
 
         Message saved = messageRepository.save(
                 Message.createFileMessage(chatRoom, sender, file, members.size()));
+        outboxEventPublisher.publishMessageCreated(saved);
 
         return new SendResult(saved, sender, members);
     }
@@ -158,6 +163,8 @@ public class ChatMessageService {
 
         int activeCount = chatRoomUserRepository.countByChatRoomIdAndStatus(chatRoomId, ChatRoomUser.Status.ACTIVE);
 
-        return messageRepository.save(Message.createSystemMessage(chatRoom, content, activeCount));
+        Message saved = messageRepository.save(Message.createSystemMessage(chatRoom, content, activeCount));
+        outboxEventPublisher.publishMessageCreated(saved);
+        return saved;
     }
 }
