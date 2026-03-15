@@ -1,6 +1,7 @@
 package com.bok.chat.api.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
@@ -25,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -59,14 +61,14 @@ public class MessageSearchService {
      */
     @Transactional(readOnly = true)
     public MessageSearchResponse searchAll(Long userId, String keyword, String cursor, int size) {
-        List<ChatRoomUser> memberships = chatRoomUserRepository
+        List<ChatRoomUser> activeRooms = chatRoomUserRepository
                 .findByUserIdAndStatus(userId, ChatRoomUser.Status.ACTIVE);
 
-        if (memberships.isEmpty()) {
-            return new MessageSearchResponse(List.of(), null, false);
+        if (activeRooms.isEmpty()) {
+            return MessageSearchResponse.empty();
         }
 
-        List<Long> roomIds = memberships.stream()
+        List<Long> roomIds = activeRooms.stream()
                 .map(m -> m.getChatRoom().getId())
                 .toList();
 
@@ -74,7 +76,7 @@ public class MessageSearchService {
                 .filter(f -> f.terms(t -> t
                         .field("chatRoomId")
                         .terms(tv -> tv.value(roomIds.stream()
-                                .map(id -> co.elastic.clients.elasticsearch._types.FieldValue.of(id))
+                                .map(FieldValue::of)
                                 .toList()))));
 
         return executeSearch(bool.build(), cursor, size);
@@ -106,12 +108,13 @@ public class MessageSearchService {
 
             List<Long> messageIds = response.hits().hits().stream()
                     .map(Hit::source)
+                    .filter(Objects::nonNull)
                     .map(MessageDocument::messageId)
                     .toList();
 
             CursorPage<Long> page = CursorPage.of(new ArrayList<>(messageIds), size, id -> id);
             if (page.isEmpty()) {
-                return new MessageSearchResponse(List.of(), null, false);
+                return MessageSearchResponse.empty();
             }
 
             List<Message> messages = messageRepository.findAllByIdWithSenderAndFile(page.items());

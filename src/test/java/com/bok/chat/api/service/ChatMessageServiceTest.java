@@ -54,9 +54,6 @@ class ChatMessageServiceTest {
     @Mock
     private FileAttachmentRepository fileAttachmentRepository;
 
-    @Mock
-    private OutboxEventPublisher outboxEventPublisher;
-
     @Nested
     @DisplayName("밀린 메시지 조회")
     class GetUndeliveredMessages {

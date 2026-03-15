@@ -7,9 +7,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
-import java.io.StringReader;
+import java.io.InputStream;
 
 @Slf4j
 @Component
@@ -17,6 +18,7 @@ import java.io.StringReader;
 public class ElasticsearchIndexInitializer {
 
     public static final String MESSAGE_INDEX = "messages";
+    private static final String INDEX_SETTINGS_PATH = "elasticsearch/messages-index.json";
 
     private final ElasticsearchClient esClient;
 
@@ -27,54 +29,14 @@ public class ElasticsearchIndexInitializer {
                     ExistsRequest.of(e -> e.index(MESSAGE_INDEX))).value();
 
             if (!exists) {
+                InputStream settingsStream = new ClassPathResource(INDEX_SETTINGS_PATH).getInputStream();
                 esClient.indices().create(CreateIndexRequest.of(c -> c
                         .index(MESSAGE_INDEX)
-                        .withJson(new StringReader(INDEX_SETTINGS))));
+                        .withJson(settingsStream)));
                 log.info("Elasticsearch index '{}' created", MESSAGE_INDEX);
             }
         } catch (Exception e) {
-            log.warn("Failed to initialize Elasticsearch index: {}", e.getMessage());
+            log.error("Failed to initialize Elasticsearch index: {}", e.getMessage(), e);
         }
     }
-
-    private static final String INDEX_SETTINGS = """
-            {
-              "settings": {
-                "analysis": {
-                  "analyzer": {
-                    "nori_analyzer": {
-                      "type": "custom",
-                      "tokenizer": "nori_tokenizer",
-                      "filter": ["lowercase", "nori_part_of_speech"]
-                    }
-                  },
-                  "filter": {
-                    "nori_part_of_speech": {
-                      "type": "nori_part_of_speech",
-                      "stoptags": ["E", "J", "SC", "SE", "SF", "SP", "SSC", "SSO", "SY", "VCN", "VCP", "VSV", "VX", "XPN", "XSA", "XSN", "XSV"]
-                    }
-                  }
-                }
-              },
-              "mappings": {
-                "properties": {
-                  "messageId": { "type": "long" },
-                  "chatRoomId": { "type": "long" },
-                  "senderId": { "type": "long" },
-                  "senderName": { "type": "keyword" },
-                  "content": {
-                    "type": "text",
-                    "analyzer": "nori_analyzer"
-                  },
-                  "originalFilename": {
-                    "type": "text",
-                    "analyzer": "nori_analyzer"
-                  },
-                  "messageType": { "type": "keyword" },
-                  "deleted": { "type": "boolean" },
-                  "createdAt": { "type": "date" }
-                }
-              }
-            }
-            """;
 }

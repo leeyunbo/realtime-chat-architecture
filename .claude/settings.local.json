@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git -C /Users/bok/Project/realtime-chat status)"
+      "Bash(git -C /Users/bok/Project/realtime-chat status)",
+      "Bash(/opt/homebrew/bin/gh auth:*)",
+      "Bash(gh repo:*)"
     ]
   }
 }

@@ -1,7 +1,9 @@
 package com.bok.chat.api.service;
 
+import com.bok.chat.entity.DeadLetterEvent;
 import com.bok.chat.entity.OutboxEvent;
 import com.bok.chat.event.OutboxEventCreatedEvent;
+import com.bok.chat.repository.DeadLetterEventRepository;
 import com.bok.chat.repository.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,7 @@ public class OutboxProcessor {
     private static final int MAX_RETRY = 5;
 
     private final OutboxEventRepository outboxEventRepository;
+    private final DeadLetterEventRepository deadLetterEventRepository;
     private final ElasticsearchIndexService esIndexService;
 
     /**
@@ -60,8 +63,15 @@ public class OutboxProcessor {
             event.markProcessed();
         } catch (Exception e) {
             event.incrementRetry();
-            log.warn("Failed to process outbox event {} (retry {}): {}",
-                    event.getId(), event.getRetryCount(), e.getMessage());
+            if (event.getRetryCount() >= MAX_RETRY) {
+                deadLetterEventRepository.save(DeadLetterEvent.from(event));
+                event.markProcessed();
+                log.error("Outbox event {} moved to DLQ after {} retries. aggregateId={}, type={}",
+                        event.getId(), MAX_RETRY, event.getAggregateId(), event.getEventType());
+            } else {
+                log.warn("Failed to process outbox event {} (retry {}/{}): {}",
+                        event.getId(), event.getRetryCount(), MAX_RETRY, e.getMessage());
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.bok.chat.entity;
 
+import com.bok.chat.event.MessageDomainEvent;
+import com.bok.chat.entity.OutboxEvent.EventType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -54,15 +56,21 @@ public class Message extends BaseEntity {
     }
 
     public static Message create(ChatRoom chatRoom, User sender, String content, int memberCount) {
-        return new Message(chatRoom, sender, content, memberCount - 1, MessageType.CHAT, null);
+        Message msg = new Message(chatRoom, sender, content, memberCount - 1, MessageType.CHAT, null);
+        msg.registerEvent(new MessageDomainEvent(EventType.CREATED, msg));
+        return msg;
     }
 
     public static Message createSystemMessage(ChatRoom chatRoom, String content, int memberCount) {
-        return new Message(chatRoom, null, content, memberCount > 0 ? memberCount - 1 : 0, MessageType.SYSTEM, null);
+        Message msg = new Message(chatRoom, null, content, memberCount > 0 ? memberCount - 1 : 0, MessageType.SYSTEM, null);
+        msg.registerEvent(new MessageDomainEvent(EventType.CREATED, msg));
+        return msg;
     }
 
     public static Message createFileMessage(ChatRoom chatRoom, User sender, FileAttachment file, int memberCount) {
-        return new Message(chatRoom, sender, file.getOriginalFilename(), memberCount - 1, MessageType.FILE, file);
+        Message msg = new Message(chatRoom, sender, file.getOriginalFilename(), memberCount - 1, MessageType.FILE, file);
+        msg.registerEvent(new MessageDomainEvent(EventType.CREATED, msg));
+        return msg;
     }
 
     public void edit(Long requestUserId, String newContent) {
@@ -72,11 +80,13 @@ public class Message extends BaseEntity {
         }
         this.content = newContent;
         this.edited = true;
+        registerEvent(new MessageDomainEvent(EventType.UPDATED, this));
     }
 
     public void markDeleted(Long requestUserId) {
         validateOwnership(requestUserId);
         this.deleted = true;
+        registerEvent(new MessageDomainEvent(EventType.DELETED, this));
     }
 
     private void validateOwnership(Long requestUserId) {

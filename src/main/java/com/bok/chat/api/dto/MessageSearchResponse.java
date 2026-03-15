@@ -7,4 +7,7 @@ public record MessageSearchResponse(
         String nextCursor,
         boolean hasNext
 ) {
+    public static MessageSearchResponse empty() {
+        return new MessageSearchResponse(List.of(), null, false);
+    }
 }
