@@ -40,21 +40,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findUnreadMessages(@Param("chatRoomId") Long chatRoomId,
                                      @Param("lastReadMessageId") Long lastReadMessageId);
 
-    @Query(value = "SELECT m.id FROM messages m " +
-            "WHERE m.chatroom_id = :chatRoomId " +
-            "AND m.created_at >= :joinedAt " +
-            "AND m.deleted = false " +
-            "AND m.content_tsv @@ to_tsquery('simple', :query) " +
-            "AND (:cursor IS NULL OR m.id < :cursor) " +
-            "ORDER BY m.id DESC " +
-            "LIMIT :limit",
-            nativeQuery = true)
-    List<Long> searchMessageIds(@Param("chatRoomId") Long chatRoomId,
-                                @Param("joinedAt") LocalDateTime joinedAt,
-                                @Param("query") String query,
-                                @Param("cursor") Long cursor,
-                                @Param("limit") int limit);
-
     @Query("SELECT m FROM Message m LEFT JOIN FETCH m.sender LEFT JOIN FETCH m.file " +
             "WHERE m.id IN :ids ORDER BY m.id DESC")
     List<Message> findAllByIdWithSenderAndFile(@Param("ids") List<Long> ids);

@@ -104,6 +104,7 @@ public class ChatMessageService {
                 .orElseThrow(() -> new IllegalArgumentException("메시지가 존재하지 않습니다."));
 
         message.edit(userId, newContent);
+        messageRepository.save(message);
 
         List<ChatRoomUser> members = chatRoomUserRepository
                 .findByChatRoomIdAndStatus(message.getChatRoom().getId(), ChatRoomUser.Status.ACTIVE);
@@ -117,6 +118,7 @@ public class ChatMessageService {
                 .orElseThrow(() -> new IllegalArgumentException("메시지가 존재하지 않습니다."));
 
         message.markDeleted(userId);
+        messageRepository.save(message);
 
         List<ChatRoomUser> members = chatRoomUserRepository
                 .findByChatRoomIdAndStatus(message.getChatRoom().getId(), ChatRoomUser.Status.ACTIVE);
@@ -150,14 +152,5 @@ public class ChatMessageService {
                 Message.createFileMessage(chatRoom, sender, file, members.size()));
 
         return new SendResult(saved, sender, members);
-    }
-
-    public Message createSystemMessage(Long chatRoomId, String content) {
-        var chatRoom = chatRoomRepository.findById(chatRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
-
-        int activeCount = chatRoomUserRepository.countByChatRoomIdAndStatus(chatRoomId, ChatRoomUser.Status.ACTIVE);
-
-        return messageRepository.save(Message.createSystemMessage(chatRoom, content, activeCount));
     }
 }
