@@ -35,7 +35,6 @@ dependencies {
 	implementation platform('software.amazon.awssdk:bom:2.31.1')
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'com.drewnoakes:metadata-extractor:2.19.0'
-	implementation 'co.elastic.clients:elasticsearch-java:8.17.0'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
@@ -46,7 +45,6 @@ dependencies {
 	testImplementation 'org.testcontainers:junit-jupiter:1.20.4'
 	testImplementation 'org.testcontainers:postgresql:1.20.4'
 	testImplementation 'org.testcontainers:minio:1.20.4'
-	testImplementation 'org.testcontainers:elasticsearch:1.20.4'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

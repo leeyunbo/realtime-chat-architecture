@@ -21,7 +21,6 @@ export type MessageType = 'CHAT' | 'SYSTEM' | 'FILE';
 
 export interface MessageResponse {
   id: number;
-  chatRoomId?: number;
   senderId: number;
   senderName: string;
   content: string;

@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record MessageResponse(
         Long id,
-        Long chatRoomId,
         Long senderId,
         String senderName,
         String content,
@@ -26,7 +25,6 @@ public record MessageResponse(
         FileAttachment file = m.getFile();
         return new MessageResponse(
                 m.getId(),
-                m.getChatRoom().getId(),
                 m.getSender() != null ? m.getSender().getId() : null,
                 m.getSender() != null ? m.getSender().getUsername() : null,
                 m.isDeleted() ? null : m.getContent(),
