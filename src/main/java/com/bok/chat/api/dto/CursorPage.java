@@ -26,6 +26,10 @@ public record CursorPage<T>(List<T> items, String nextCursor, boolean hasNext) {
         }
     }
 
+    public static String encodeCursor(Long id) {
+        return encode(id);
+    }
+
     private static String encode(Long id) {
         return Base64.getEncoder().encodeToString(String.valueOf(id).getBytes(StandardCharsets.UTF_8));
     }

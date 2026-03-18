@@ -41,48 +41,10 @@ class MessageRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    @DisplayName("lastReadMessageId 이후 메시지의 unreadCount를 1씩 차감한다")
-    void decrementUnreadCountAfter_shouldDecrementUnreadMessages() {
-        Message msg1 = Message.create(chatRoom, sender, "msg1", 3);
-        Message msg2 = Message.create(chatRoom, sender, "msg2", 3);
-        Message msg3 = Message.create(chatRoom, sender, "msg3", 3);
-        em.persist(msg1);
-        em.persist(msg2);
-        em.persist(msg3);
-        em.flush();
-        em.clear();
-
-        int updated = messageRepository.decrementUnreadCountAfter(chatRoom.getId(), msg1.getId());
-
-        assertThat(updated).isEqualTo(2);
-
-        Message reloaded2 = em.find(Message.class, msg2.getId());
-        Message reloaded3 = em.find(Message.class, msg3.getId());
-        assertThat(reloaded2.getUnreadCount()).isEqualTo(1);
-        assertThat(reloaded3.getUnreadCount()).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("unreadCount가 0인 메시지는 차감하지 않는다")
-    void decrementUnreadCountAfter_shouldNotGoBelowZero() {
-        Message msg = Message.create(chatRoom, sender, "msg", 1); // unreadCount = 0
-        em.persist(msg);
-        em.flush();
-        em.clear();
-
-        int updated = messageRepository.decrementUnreadCountAfter(chatRoom.getId(), 0L);
-
-        assertThat(updated).isEqualTo(0);
-
-        Message reloaded = em.find(Message.class, msg.getId());
-        assertThat(reloaded.getUnreadCount()).isEqualTo(0);
-    }
-
-    @Test
     @DisplayName("채팅방의 최신 메시지 ID를 반환한다")
     void findLatestMessageIdByChatRoomId_shouldReturnMaxId() {
-        Message msg1 = Message.create(chatRoom, sender, "msg1", 2);
-        Message msg2 = Message.create(chatRoom, sender, "msg2", 2);
+        Message msg1 = Message.create(chatRoom, sender,"msg1");
+        Message msg2 = Message.create(chatRoom, sender,"msg2");
         em.persist(msg1);
         em.persist(msg2);
         em.flush();
@@ -104,9 +66,9 @@ class MessageRepositoryTest extends RepositoryTestBase {
     @Test
     @DisplayName("lastReadMessageId 이후의 안 읽은 메시지를 시간순으로 반환한다")
     void findUnreadMessages_shouldReturnMessagesAfterLastRead() {
-        Message msg1 = Message.create(chatRoom, sender, "msg1", 2);
-        Message msg2 = Message.create(chatRoom, sender, "msg2", 2);
-        Message msg3 = Message.create(chatRoom, sender, "msg3", 2);
+        Message msg1 = Message.create(chatRoom, sender,"msg1");
+        Message msg2 = Message.create(chatRoom, sender,"msg2");
+        Message msg3 = Message.create(chatRoom, sender,"msg3");
         em.persist(msg1);
         em.persist(msg2);
         em.persist(msg3);
@@ -125,8 +87,8 @@ class MessageRepositoryTest extends RepositoryTestBase {
     @Test
     @DisplayName("lastReadMessageId가 0이면 모든 메시지를 반환한다")
     void findUnreadMessages_withZeroLastRead_shouldReturnAllMessages() {
-        Message msg1 = Message.create(chatRoom, sender, "msg1", 2);
-        Message msg2 = Message.create(chatRoom, sender, "msg2", 2);
+        Message msg1 = Message.create(chatRoom, sender,"msg1");
+        Message msg2 = Message.create(chatRoom, sender,"msg2");
         em.persist(msg1);
         em.persist(msg2);
         em.flush();
@@ -140,7 +102,7 @@ class MessageRepositoryTest extends RepositoryTestBase {
     @Test
     @DisplayName("안 읽은 메시지가 없으면 빈 리스트를 반환한다")
     void findUnreadMessages_noUnread_shouldReturnEmpty() {
-        Message msg1 = Message.create(chatRoom, sender, "msg1", 2);
+        Message msg1 = Message.create(chatRoom, sender,"msg1");
         em.persist(msg1);
         em.flush();
         em.clear();
@@ -153,9 +115,9 @@ class MessageRepositoryTest extends RepositoryTestBase {
     @Test
     @DisplayName("lastReadMessageId 이후의 메시지 수를 반환한다")
     void countUnreadMessages_shouldCountMessagesAfterLastRead() {
-        Message msg1 = Message.create(chatRoom, sender, "msg1", 2);
-        Message msg2 = Message.create(chatRoom, sender, "msg2", 2);
-        Message msg3 = Message.create(chatRoom, sender, "msg3", 2);
+        Message msg1 = Message.create(chatRoom, sender,"msg1");
+        Message msg2 = Message.create(chatRoom, sender,"msg2");
+        Message msg3 = Message.create(chatRoom, sender,"msg3");
         em.persist(msg1);
         em.persist(msg2);
         em.persist(msg3);
@@ -180,9 +142,9 @@ class MessageRepositoryTest extends RepositoryTestBase {
         @Test
         @DisplayName("FTS로 키워드가 포함된 메시지를 검색한다")
         void searchMessageIds_shouldMatchContent() {
-            Message msg1 = Message.create(chatRoom, sender, "hello world", 2);
-            Message msg2 = Message.create(chatRoom, sender, "goodbye world", 2);
-            Message msg3 = Message.create(chatRoom, sender, "hello there", 2);
+            Message msg1 = Message.create(chatRoom, sender,"hello world");
+            Message msg2 = Message.create(chatRoom, sender,"goodbye world");
+            Message msg3 = Message.create(chatRoom, sender,"hello there");
             em.persist(msg1);
             em.persist(msg2);
             em.persist(msg3);
@@ -199,7 +161,7 @@ class MessageRepositoryTest extends RepositoryTestBase {
         @Test
         @DisplayName("삭제된 메시지는 검색 결과에서 제외된다")
         void searchMessageIds_shouldExcludeDeleted() {
-            Message msg1 = Message.create(chatRoom, sender, "hello world", 2);
+            Message msg1 = Message.create(chatRoom, sender,"hello world");
             em.persist(msg1);
             em.flush();
 
@@ -216,9 +178,9 @@ class MessageRepositoryTest extends RepositoryTestBase {
         @Test
         @DisplayName("커서 이전의 메시지만 반환한다")
         void searchMessageIds_withCursor_shouldFilterOlderMessages() {
-            Message msg1 = Message.create(chatRoom, sender, "hello first", 2);
-            Message msg2 = Message.create(chatRoom, sender, "hello second", 2);
-            Message msg3 = Message.create(chatRoom, sender, "hello third", 2);
+            Message msg1 = Message.create(chatRoom, sender,"hello first");
+            Message msg2 = Message.create(chatRoom, sender,"hello second");
+            Message msg3 = Message.create(chatRoom, sender,"hello third");
             em.persist(msg1);
             em.persist(msg2);
             em.persist(msg3);
@@ -236,8 +198,8 @@ class MessageRepositoryTest extends RepositoryTestBase {
         @Test
         @DisplayName("findAllByIdWithSenderAndFile로 엔티티를 JOIN FETCH 로딩한다")
         void findAllByIdWithSenderAndFile_shouldEagerLoadRelations() {
-            Message msg1 = Message.create(chatRoom, sender, "hello", 2);
-            Message msg2 = Message.create(chatRoom, sender, "world", 2);
+            Message msg1 = Message.create(chatRoom, sender,"hello");
+            Message msg2 = Message.create(chatRoom, sender,"world");
             em.persist(msg1);
             em.persist(msg2);
             em.flush();

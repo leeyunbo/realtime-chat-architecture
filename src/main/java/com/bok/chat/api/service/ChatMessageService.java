@@ -57,16 +57,15 @@ public class ChatMessageService {
         List<ChatRoomUser> members = chatRoomUserRepository
                 .findByChatRoomIdAndStatus(chatRoom.getId(), ChatRoomUser.Status.ACTIVE);
 
-        Message saved = messageRepository.save(
-                Message.create(chatRoom, sender, content, members.size()));
+        Message saved = messageRepository.save(Message.create(chatRoom, sender, content));
 
         return new SendResult(saved, sender, members);
     }
 
     /**
      * 채팅방 진입 시 일괄 읽음 처리.
-     * lastReadMessageId 이후의 모든 메시지 unreadCount를 1 차감하고,
      * lastReadMessageId를 최신 메시지 ID로 갱신한다.
+     * unreadCount는 조회 시 lastReadMessageId 기반으로 계산하므로 별도 업데이트 불필요.
      */
     @Transactional
     public BulkReadResult readMessages(Long userId, Long chatRoomId) {
@@ -89,7 +88,6 @@ public class ChatMessageService {
             return BulkReadResult.nothingToRead();
         }
 
-        messageRepository.decrementUnreadCountAfter(chatRoomId, prevLastRead);
         chatRoomUser.updateLastReadMessageId(latestMessageId);
 
         List<ChatRoomUser> members = chatRoomUserRepository
@@ -146,18 +144,8 @@ public class ChatMessageService {
         List<ChatRoomUser> members = chatRoomUserRepository
                 .findByChatRoomIdAndStatus(chatRoom.getId(), ChatRoomUser.Status.ACTIVE);
 
-        Message saved = messageRepository.save(
-                Message.createFileMessage(chatRoom, sender, file, members.size()));
+        Message saved = messageRepository.save(Message.createFileMessage(chatRoom, sender, file));
 
         return new SendResult(saved, sender, members);
-    }
-
-    public Message createSystemMessage(Long chatRoomId, String content) {
-        var chatRoom = chatRoomRepository.findById(chatRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
-
-        int activeCount = chatRoomUserRepository.countByChatRoomIdAndStatus(chatRoomId, ChatRoomUser.Status.ACTIVE);
-
-        return messageRepository.save(Message.createSystemMessage(chatRoom, content, activeCount));
     }
 }

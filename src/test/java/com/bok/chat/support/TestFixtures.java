@@ -29,8 +29,8 @@ public class TestFixtures {
         return chatRoomUser;
     }
 
-    public static Message createMessage(Long id, ChatRoom chatRoom, User sender, String content, int memberCount) {
-        Message message = Message.create(chatRoom, sender, content, memberCount);
+    public static Message createMessage(Long id, ChatRoom chatRoom, User sender, String content) {
+        Message message = Message.create(chatRoom, sender, content);
         ReflectionTestUtils.setField(message, "id", id);
         return message;
     }

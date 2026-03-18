@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -33,13 +34,15 @@ public class MessageService {
                 chatRoomId, membership.getJoinedAt(), PageRequest.of(page, size)));
         Collections.reverse(messages);
 
+        List<Long> messageIds = messages.stream().map(Message::getId).toList();
+        Map<Long, Long> unreadCounts = chatRoomUserRepository.countUnreadPerMessage(messageIds);
+
         return messages.stream()
-                .map(MessageResponse::from)
+                .map(m -> MessageResponse.from(m, unreadCounts.getOrDefault(m.getId(), 0L)))
                 .toList();
     }
 
-    public MessageSearchResponse searchMessages(Long userId, Long chatRoomId,
-                                                 String keyword, String cursor, int size) {
+    public MessageSearchResponse searchMessages(Long userId, Long chatRoomId, String keyword, String cursor, int size) {
         ChatRoomUser membership = chatRoomUserRepository.findByChatRoomIdAndUserId(chatRoomId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방 멤버가 아닙니다."));
 
@@ -48,21 +51,21 @@ public class MessageService {
             return new MessageSearchResponse(List.of(), null, false);
         }
 
-        Long decodedCursor = CursorPage.decodeCursor(cursor);
+        Long cursorId = cursor != null ? CursorPage.decodeCursor(cursor) : null;
+
         List<Long> ids = messageRepository.searchMessageIds(
-                chatRoomId, membership.getJoinedAt(), tsQuery, decodedCursor, size + 1);
+                chatRoomId, membership.getJoinedAt(), tsQuery, cursorId, size + 1);
 
-        CursorPage<Long> page = CursorPage.of(ids, size, id -> id);
-        if (page.isEmpty()) {
-            return new MessageSearchResponse(List.of(), null, false);
-        }
+        boolean hasNext = ids.size() > size;
+        List<Long> pageIds = hasNext ? ids.subList(0, size) : ids;
 
-        List<Message> messages = messageRepository.findAllByIdWithSenderAndFile(page.items());
+        List<Message> messages = messageRepository.findAllByIdWithSenderAndFile(pageIds);
+        String nextCursor = hasNext ? CursorPage.encodeCursor(pageIds.get(pageIds.size() - 1)) : null;
+
         List<MessageResponse> responses = messages.stream()
-                .map(MessageResponse::from)
+                .map(m -> MessageResponse.from(m, 0L))
                 .toList();
 
-        return new MessageSearchResponse(responses, page.nextCursor(), page.hasNext());
+        return new MessageSearchResponse(responses, nextCursor, hasNext);
     }
-
 }

@@ -56,7 +56,6 @@ class ChatFlowIntegrationTest extends IntegrationTestBase {
         SendResult sendResult = chatMessageService.sendMessage(
                 userId1, room.id(), "Hello Bob!");
         assertThat(sendResult.message().getContent()).isEqualTo("Hello Bob!");
-        assertThat(sendResult.message().getUnreadCount()).isEqualTo(1);
 
         // 6. 읽음 처리
         BulkReadResult readResult = chatMessageService.readMessages(userId2, room.id());

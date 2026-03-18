@@ -65,7 +65,7 @@ class ChatMessageServiceTest {
             User user = createUser(1L, "user1");
             User sender = createUser(2L, "sender");
             ChatRoomUser chatRoomUser = createChatRoomUser(1L, chatRoom, user);
-            Message msg = createMessage(10L, chatRoom, sender, "hello", 2);
+            Message msg = createMessage(10L, chatRoom, sender, "hello");
 
             given(chatRoomUserRepository.findByUserIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
                     .willReturn(List.of(chatRoomUser));
@@ -104,7 +104,7 @@ class ChatMessageServiceTest {
             User sender = createUser(2L, "sender");
             ChatRoomUser chatRoomUser = createChatRoomUser(1L, chatRoom, user);
             chatRoomUser.updateLastReadMessageId(5L);
-            Message msg = createMessage(10L, chatRoom, sender, "new msg", 2);
+            Message msg = createMessage(10L, chatRoom, sender, "new msg");
 
             given(chatRoomUserRepository.findByUserIdAndStatus(1L, ChatRoomUser.Status.ACTIVE))
                     .willReturn(List.of(chatRoomUser));
@@ -130,7 +130,7 @@ class ChatMessageServiceTest {
             User sender = createUser(1L, "sender");
             ChatRoomUser member1 = createChatRoomUser(1L, chatRoom, sender);
             ChatRoomUser member2 = createChatRoomUser(2L, chatRoom, createUser(2L, "receiver"));
-            Message savedMessage = createMessage(1L, chatRoom, sender, "hello", 2);
+            Message savedMessage = createMessage(1L, chatRoom, sender, "hello");
 
             given(chatRoomRepository.findById(1L)).willReturn(Optional.of(chatRoom));
             given(userRepository.findById(1L)).willReturn(Optional.of(sender));
@@ -174,7 +174,7 @@ class ChatMessageServiceTest {
     class ReadMessages {
 
         @Test
-        @DisplayName("성공 시 unreadCount를 차감하고 결과를 반환한다")
+        @DisplayName("성공 시 lastReadMessageId를 갱신하고 결과를 반환한다")
         void readMessages_shouldReturnBulkReadResult() {
             ChatRoom chatRoom = createChatRoom(1L, 2);
             User user = createUser(1L, "user1");
@@ -191,7 +191,6 @@ class ChatMessageServiceTest {
 
             assertThat(result.success()).isTrue();
             assertThat(result.lastReadMessageId()).isEqualTo(10L);
-            verify(messageRepository).decrementUnreadCountAfter(1L, 0L);
         }
 
         @Test
@@ -250,7 +249,7 @@ class ChatMessageServiceTest {
         void editMessage_shouldReturnEditResult() {
             ChatRoom chatRoom = createChatRoom(1L, 2);
             User sender = createUser(1L, "sender");
-            Message message = createMessage(1L, chatRoom, sender, "원본", 2);
+            Message message = createMessage(1L, chatRoom, sender, "원본");
             ChatRoomUser member = createChatRoomUser(1L, chatRoom, sender);
 
             given(messageRepository.findById(1L)).willReturn(Optional.of(message));
@@ -279,7 +278,7 @@ class ChatMessageServiceTest {
         void editMessage_notOwner_shouldThrow() {
             ChatRoom chatRoom = createChatRoom(1L, 2);
             User sender = createUser(1L, "sender");
-            Message message = createMessage(1L, chatRoom, sender, "원본", 2);
+            Message message = createMessage(1L, chatRoom, sender, "원본");
 
             given(messageRepository.findById(1L)).willReturn(Optional.of(message));
 
@@ -298,7 +297,7 @@ class ChatMessageServiceTest {
         void deleteMessage_shouldReturnDeleteResult() {
             ChatRoom chatRoom = createChatRoom(1L, 2);
             User sender = createUser(1L, "sender");
-            Message message = createMessage(1L, chatRoom, sender, "원본", 2);
+            Message message = createMessage(1L, chatRoom, sender, "원본");
             ChatRoomUser member = createChatRoomUser(1L, chatRoom, sender);
 
             given(messageRepository.findById(1L)).willReturn(Optional.of(message));
@@ -316,7 +315,7 @@ class ChatMessageServiceTest {
         void deleteMessage_notOwner_shouldThrow() {
             ChatRoom chatRoom = createChatRoom(1L, 2);
             User sender = createUser(1L, "sender");
-            Message message = createMessage(1L, chatRoom, sender, "원본", 2);
+            Message message = createMessage(1L, chatRoom, sender, "원본");
 
             given(messageRepository.findById(1L)).willReturn(Optional.of(message));
 
@@ -338,7 +337,7 @@ class ChatMessageServiceTest {
             FileAttachment file = createFileAttachment(10L, chatRoom, sender, "photo.jpg", "image/jpeg", 2048);
             ChatRoomUser member1 = createChatRoomUser(1L, chatRoom, sender);
             ChatRoomUser member2 = createChatRoomUser(2L, chatRoom, createUser(2L, "receiver"));
-            Message savedMessage = Message.createFileMessage(chatRoom, sender, file, 2);
+            Message savedMessage = Message.createFileMessage(chatRoom, sender, file);
             org.springframework.test.util.ReflectionTestUtils.setField(savedMessage, "id", 1L);
 
             given(chatRoomRepository.findById(1L)).willReturn(Optional.of(chatRoom));

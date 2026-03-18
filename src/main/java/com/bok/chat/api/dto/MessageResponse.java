@@ -12,30 +12,32 @@ public record MessageResponse(
         Long senderId,
         String senderName,
         String content,
-        int unreadCount,
+        long unreadCount,
         boolean edited,
         boolean deleted,
         LocalDateTime createdAt,
         Long fileId,
         String originalFilename,
         String contentType,
-        Long fileSize
+        Long fileSize,
+        Long chatRoomId
 ) {
-    public static MessageResponse from(Message m) {
+    public static MessageResponse from(Message m, long unreadCount) {
         FileAttachment file = m.getFile();
         return new MessageResponse(
                 m.getId(),
                 m.getSender() != null ? m.getSender().getId() : null,
                 m.getSender() != null ? m.getSender().getUsername() : null,
                 m.isDeleted() ? null : m.getContent(),
-                m.getUnreadCount(),
+                unreadCount,
                 m.isEdited(),
                 m.isDeleted(),
                 m.getCreatedAt(),
                 file != null ? file.getId() : null,
                 file != null ? file.getOriginalFilename() : null,
                 file != null ? file.getContentType() : null,
-                file != null ? file.getFileSize() : null
+                file != null ? file.getFileSize() : null,
+                m.getChatRoom() != null ? m.getChatRoom().getId() : null
         );
     }
 }

@@ -12,6 +12,7 @@ import com.bok.chat.entity.Message;
 import com.bok.chat.entity.User;
 import com.bok.chat.redis.OnlineStatusService;
 import com.bok.chat.redis.RedisMessageRelay;
+import com.bok.chat.repository.ChatRoomUserRepository;
 import com.bok.chat.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,6 +69,9 @@ class ChatWebSocketHandlerTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private ChatRoomUserRepository chatRoomUserRepository;
+
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -103,11 +107,13 @@ class ChatWebSocketHandlerTest {
         void afterConnectionEstablished_sendsPendingMessages() throws Exception {
             var chatRoom = createChatRoom(1L, 2);
             var sender = createUser(2L, "bob");
-            var msg1 = createMessage(10L, chatRoom, sender, "hello", 2);
-            var msg2 = createMessage(11L, chatRoom, sender, "world", 2);
+            var msg1 = createMessage(10L, chatRoom, sender, "hello");
+            var msg2 = createMessage(11L, chatRoom, sender, "world");
 
             given(chatMessageService.getUndeliveredMessages(1L))
                     .willReturn(List.of(new UndeliveredMessages(1L, List.of(msg1, msg2))));
+            given(chatRoomUserRepository.countUnreadPerMessage(List.of(10L, 11L)))
+                    .willReturn(Map.of(10L, 1L, 11L, 1L));
             given(userRepository.findById(1L)).willReturn(Optional.of(createUser(1L, "alice")));
             given(friendService.getFriendIds(1L)).willReturn(List.of());
 
@@ -121,11 +127,13 @@ class ChatWebSocketHandlerTest {
         void afterConnectionEstablished_ioException_stopsDelivery() throws Exception {
             var chatRoom = createChatRoom(1L, 2);
             var sender = createUser(2L, "bob");
-            var msg1 = createMessage(10L, chatRoom, sender, "hello", 2);
-            var msg2 = createMessage(11L, chatRoom, sender, "world", 2);
+            var msg1 = createMessage(10L, chatRoom, sender, "hello");
+            var msg2 = createMessage(11L, chatRoom, sender, "world");
 
             given(chatMessageService.getUndeliveredMessages(1L))
                     .willReturn(List.of(new UndeliveredMessages(1L, List.of(msg1, msg2))));
+            given(chatRoomUserRepository.countUnreadPerMessage(List.of(10L, 11L)))
+                    .willReturn(Map.of(10L, 1L, 11L, 1L));
             doThrow(new IOException("broken pipe")).when(session).sendMessage(any(TextMessage.class));
             given(userRepository.findById(1L)).willReturn(Optional.of(createUser(1L, "alice")));
             given(friendService.getFriendIds(1L)).willReturn(List.of());
@@ -173,7 +181,7 @@ class ChatWebSocketHandlerTest {
             var chatRoom = createChatRoom(1L, 2);
             var sender = createUser(1L, "alice");
             var receiver = createUser(2L, "bob");
-            var message = createMessage(1L, chatRoom, sender, "hello", 2);
+            var message = createMessage(1L, chatRoom, sender, "hello");
             var member1 = createChatRoomUser(1L, chatRoom, sender);
             var member2 = createChatRoomUser(2L, chatRoom, receiver);
 
@@ -201,7 +209,7 @@ class ChatWebSocketHandlerTest {
             var sender = createUser(1L, "alice");
             var user2 = createUser(2L, "bob");
             var user3 = createUser(3L, "charlie");
-            var message = createMessage(1L, chatRoom, sender, "hello", 3);
+            var message = createMessage(1L, chatRoom, sender, "hello");
             var member1 = createChatRoomUser(1L, chatRoom, sender);
             var member2 = createChatRoomUser(2L, chatRoom, user2);
             var member3 = createChatRoomUser(3L, chatRoom, user3);
@@ -237,7 +245,7 @@ class ChatWebSocketHandlerTest {
             var chatRoom = createChatRoom(1L, 2);
             var sender = createUser(1L, "alice");
             var receiver = createUser(2L, "bob");
-            var message = createMessage(1L, chatRoom, sender, "hello", 2);
+            var message = createMessage(1L, chatRoom, sender, "hello");
             var member1 = createChatRoomUser(1L, chatRoom, sender);
             var member2 = createChatRoomUser(2L, chatRoom, receiver);
 
@@ -263,7 +271,7 @@ class ChatWebSocketHandlerTest {
             var chatRoom = createChatRoom(1L, 2);
             var sender = createUser(1L, "alice");
             var receiver = createUser(2L, "bob");
-            var message = createMessage(1L, chatRoom, sender, "hello", 2);
+            var message = createMessage(1L, chatRoom, sender, "hello");
             var member1 = createChatRoomUser(1L, chatRoom, sender);
             var member2 = createChatRoomUser(2L, chatRoom, receiver);
 

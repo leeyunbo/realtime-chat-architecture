@@ -22,12 +22,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
                                                      @Param("joinedAt") LocalDateTime joinedAt,
                                                      Pageable pageable);
 
-    @Modifying
-    @Query("UPDATE Message m SET m.unreadCount = m.unreadCount - 1 " +
-            "WHERE m.chatRoom.id = :chatRoomId AND m.id > :lastReadMessageId AND m.unreadCount > 0")
-    int decrementUnreadCountAfter(@Param("chatRoomId") Long chatRoomId,
-                                  @Param("lastReadMessageId") Long lastReadMessageId);
-
     @Query("SELECT MAX(m.id) FROM Message m WHERE m.chatRoom.id = :chatRoomId")
     Optional<Long> findLatestMessageIdByChatRoomId(@Param("chatRoomId") Long chatRoomId);
 
